@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhiloStream - 哲学を共有する</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- ========== 一覧ビュー ========== -->
+    <div class="view view-feed" id="view-feed">
+        <header class="site-header">
+            <div class="header-inner">
+                <h1 class="site-title">PhiloStream</h1>
+                <p class="site-desc">あなたの哲学を刻む</p>
+                <div class="header-actions">
+                    <button type="button" class="icon-btn" id="theme-toggle" title="テーマ切替" aria-label="テーマ切替">◐</button>
+                    <button type="button" class="icon-btn" id="export-btn" title="エクスポート" aria-label="エクスポート">↓</button>
+                    <label class="icon-btn file-label" title="インポート" aria-label="インポート">
+                        <input type="file" id="import-file" accept=".json" hidden>↑
+                    </label>
+                </div>
+            </div>
+            <div class="search-bar">
+                <input type="search" id="search-input" placeholder="検索（タイトル・本文・タグ）" autocomplete="off">
+                <select id="filter-tag">
+                    <option value="">すべてのタグ</option>
+                </select>
+                <select id="filter-sort" title="並び順">
+                    <option value="newest">新しい順</option>
+                    <option value="oldest">古い順</option>
+                    <option value="popular">人気順</option>
+                </select>
+                <span class="search-hint" id="search-hint"></span>
+            </div>
+        </header>
+
+        <main id="feed" class="feed" role="feed">
+            <div class="empty-state" id="empty-state" hidden>
+                <p>まだ哲学は一つも刻まれていません。</p>
+                <p>右下の <strong>+</strong> から、最初の一節を書き留めてください。</p>
+            </div>
+        </main>
+
+        <button type="button" class="fab" id="post-trigger" aria-label="新規投稿">+</button>
+    </div>
+
+    <!-- ========== 編集ビュー（フルスクリーン） ========== -->
+    <div class="view view-editor" id="view-editor" hidden>
+        <header class="editor-page-header">
+            <div class="editor-header-row editor-header-row--top">
+                <button type="button" class="editor-back-btn" id="editor-back" aria-label="一覧に戻る">← 戻る</button>
+                <button type="button" class="btn primary editor-save-btn" id="submit-post">投稿する</button>
+            </div>
+            <div class="editor-header-row">
+                <input type="text" id="post-title" placeholder="タイトル" maxlength="120" class="editor-title-input">
+            </div>
+            <div class="editor-header-row editor-header-row--meta">
+                <input type="text" id="post-tags" placeholder="タグ（カンマ区切り）" class="editor-tags-input">
+                <span class="char-count editor-title-count" id="title-count">0 / 120</span>
+            </div>
+        </header>
+
+        <div class="editor-toolbar-wrap">
+            <div class="toolbar" id="post-toolbar" role="toolbar">
+                <div class="toolbar-group" aria-label="文字装飾">
+                    <button type="button" class="tool-btn tool-format" id="tool-bold" title="太字" data-cmd="bold"><b>B</b></button>
+                    <button type="button" class="tool-btn tool-format" id="tool-italic" title="斜体" data-cmd="italic"><i>I</i></button>
+                    <button type="button" class="tool-btn tool-format" id="tool-underline" title="下線" data-cmd="underline"><u>U</u></button>
+                    <button type="button" class="tool-btn tool-format" id="tool-strike" title="取り消し線" data-cmd="strikeThrough"><s>S</s></button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group" aria-label="配置">
+                    <button type="button" class="tool-btn tool-align" id="tool-align-left" title="左揃え" data-align="left">左</button>
+                    <button type="button" class="tool-btn tool-align" id="tool-align-center" title="中央揃え" data-align="center">中央</button>
+                    <button type="button" class="tool-btn tool-align" id="tool-align-right" title="右揃え" data-align="right">右</button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group" aria-label="文字サイズ">
+                    <button type="button" class="tool-btn tool-size" data-size="small" title="小">小</button>
+                    <button type="button" class="tool-btn tool-size active" data-size="normal" title="標準">標準</button>
+                    <button type="button" class="tool-btn tool-size" data-size="large" title="大">大</button>
+                    <button type="button" class="tool-btn tool-size" data-size="xlarge" title="特大">特大</button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group" aria-label="フォント">
+                    <select id="tool-font" class="tool-select" title="フォント">
+                        <option value="sans">ゴシック</option>
+                        <option value="serif">明朝</option>
+                    </select>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group toolbar-colors" aria-label="文字色">
+                    <button type="button" class="tool-color" data-color="#202124" style="background-color:#202124" title="黒"></button>
+                    <button type="button" class="tool-color" data-color="#1a73e8" style="background-color:#1a73e8" title="青"></button>
+                    <button type="button" class="tool-color" data-color="#137333" style="background-color:#137333" title="緑"></button>
+                    <button type="button" class="tool-color" data-color="#c5221f" style="background-color:#c5221f" title="赤"></button>
+                    <button type="button" class="tool-color" data-color="#5f6368" style="background-color:#5f6368" title="グレー"></button>
+                    <button type="button" class="tool-color" data-color="#811e76" style="background-color:#811e76" title="紫"></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-main">
+            <div id="post-content" class="editor-body" contenteditable="true" data-placeholder="ここに哲学を書く。サイズ・フォント・色を選んでから入力すると、その書式で反映されます。"></div>
+            <span class="char-count editor-char-count" id="content-count">0 文字</span>
+        </div>
+    </div>
+
+    <!-- 詳細モーダル -->
+    <div class="overlay" id="modal-overlay" role="dialog" aria-modal="true">
+        <span class="close-btn" id="close-detail" aria-label="閉じる">&times;</span>
+        <div class="modal-content" id="modal-body">
+            <!-- 詳細 or 編集フォームは script.js で挿入 -->
+        </div>
+    </div>
+
+    <!-- 削除確認トースト -->
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
