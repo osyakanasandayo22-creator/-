@@ -2154,7 +2154,20 @@
     if (profileBackBtn) profileBackBtn.addEventListener('click', closeProfileView);
     var profileFollowersTrigger = document.getElementById('profile-followers-trigger');
     if (profileFollowersTrigger) profileFollowersTrigger.addEventListener('click', function () {
-        openFollowDrawer('フォロワー', (currentProfileForDrawer && currentProfileForDrawer.followers) ? currentProfileForDrawer.followers : []);
+        var uids = (currentProfileForDrawer && currentProfileForDrawer.followers) ? currentProfileForDrawer.followers : [];
+        var countEl = document.getElementById('profile-followers-count');
+        var displayedCount = countEl ? parseInt(countEl.textContent, 10) : 0;
+        if (uids.length === 0 && displayedCount > 0 && currentProfileForDrawer && currentProfileForDrawer.userId) {
+            loadUserProfile(currentProfileForDrawer.userId).then(function (profile) {
+                var loaded = Array.isArray(profile.followers) ? profile.followers : [];
+                if (currentProfileForDrawer && currentProfileForDrawer.userId) {
+                    currentProfileForDrawer.followers = loaded;
+                }
+                openFollowDrawer('フォロワー', loaded);
+            });
+        } else {
+            openFollowDrawer('フォロワー', uids);
+        }
     });
     var profileFollowingTrigger = document.getElementById('profile-following-trigger');
     if (profileFollowingTrigger) profileFollowingTrigger.addEventListener('click', function () {
