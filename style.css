@@ -204,6 +204,14 @@ textarea,
     padding: 0;
 }
 
+.timeline-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-sub);
+    margin: 0 0 16px 0;
+    letter-spacing: 0.02em;
+}
+
 /* ---------- 人気のタグ（note風） ---------- */
 .popular-tags-section {
     margin-bottom: 28px;

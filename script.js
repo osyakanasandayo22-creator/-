@@ -637,7 +637,7 @@
     /** 人気タグセクションを描画（note風：人気タグ＋各タグの人気投稿最大3件） */
     function renderPopularTagsSection() {
         if (!popularTagsSection) return;
-        var popular = getPopularTags(6);
+        var popular = getPopularTags(5);
         if (popular.length === 0) {
             popularTagsSection.hidden = true;
             return;
