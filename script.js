@@ -126,8 +126,8 @@
 
     function getLikeIconSrc(liked) {
         var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        if (isDark) return liked ? 'images/テーマ黒用いいね済み.png' : 'images/黒色いいね通常時.png';
-        return liked ? 'images/テーマ白用いいね済み.png' : 'images/白色いいね通常時.png';
+        if (isDark) return liked ? 'images/テーマ黒用いいね済み.png' : 'images/白色いいね通常時.png';
+        return liked ? 'images/テーマ白用いいね済み.png' : 'images/黒色いいね通常時.png';
     }
 
     let raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -572,16 +572,21 @@
         if (!item) return;
         if (!Array.isArray(item.likedBy)) item.likedBy = [];
         var uid = auth.currentUser.uid;
-        if (item.likedBy.indexOf(uid) < 0) {
+        var idx = item.likedBy.indexOf(uid);
+        if (idx < 0) {
             item.likedBy.push(uid);
             item.likes = (typeof item.likes === 'number' ? item.likes : 0) + 1;
+            showToast('高評価しました');
+        } else {
+            item.likedBy.splice(idx, 1);
+            item.likes = Math.max(0, (typeof item.likes === 'number' ? item.likes : 0) - 1);
+            showToast('高評価を解除しました');
         }
         save();
         renderFeed();
         if (modalOverlay.classList.contains('is-open') && currentDetailId === id) {
             showDetail(id);
         }
-        showToast('高評価しました');
     }
 
     function showDetail(id) {
