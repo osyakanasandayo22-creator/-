@@ -14,6 +14,7 @@
     const TITLE_MAX_LENGTH = 50;
     const DISPLAY_NAME_MAX_LENGTH = 20;
     const BIO_MAX_LENGTH = 160;
+    const VERIFIED_FOLLOWERS_THRESHOLD = 500;
 
     var db = null;
     var auth = null;
@@ -76,11 +77,18 @@
             authUser.hidden = false;
             authUser.removeAttribute('hidden');
             authUser.style.display = '';
-            if (displayNameEl) displayNameEl.textContent = getDisplayName(auth ? auth.currentUser : null);
             if (postTrigger) postTrigger.style.visibility = '';
             if (auth && auth.currentUser && db) {
-                loadUserProfile(auth.currentUser.uid).then(function (profile) { updateHeaderAvatar(profile); });
+                loadUserProfile(auth.currentUser.uid).then(function (profile) {
+                    updateHeaderAvatar(profile);
+                    if (displayNameEl) {
+                        var name = getDisplayName(auth.currentUser);
+                        displayNameEl.innerHTML = _escape(name) + ((profile.followersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD ? getVerifiedBadgeHtml() : '');
+                    }
+                });
                 loadMyFollowing();
+            } else if (displayNameEl && auth && auth.currentUser) {
+                displayNameEl.textContent = getDisplayName(auth.currentUser);
             }
         } else {
             loginBtn.hidden = false;
@@ -129,7 +137,8 @@
             authorId: t.authorId || '',
             authorDisplayName: t.authorDisplayName || '',
             authorIcon: t.authorIcon || '👤',
-            authorIconBg: t.authorIconBg || ''
+            authorIconBg: t.authorIconBg || '',
+            authorFollowersCount: typeof t.authorFollowersCount === 'number' ? t.authorFollowersCount : 0
         };
     }
 
@@ -221,7 +230,8 @@
                     authorId: d.authorId,
                     authorDisplayName: d.authorDisplayName,
                     authorIcon: d.authorIcon,
-                    authorIconBg: d.authorIconBg
+                    authorIconBg: d.authorIconBg,
+                    authorFollowersCount: typeof d.authorFollowersCount === 'number' ? d.authorFollowersCount : 0
                 }));
             });
             return list;
@@ -331,6 +341,11 @@
         var extraClass = isInitial ? ' ' + iconClass + '--initial' : '';
         var idAttr = (iconClass === 'profile-page-avatar') ? ' id="profile-page-avatar"' : '';
         return '<span class="' + _escape(iconClass) + extraClass + '"' + idAttr + ' aria-hidden="true"' + style + '>' + content + '</span>';
+    }
+
+    /** フォロワー数が閾値超のアカウント用の公式バッジHTML（表示名の横に表示） */
+    function getVerifiedBadgeHtml() {
+        return '<span class="verified-badge" aria-label="公式アカウント" title="フォロワー500人以上の公式アカウント">✓</span>';
     }
 
     function saveUserProfile(uid, data) {
@@ -653,6 +668,7 @@
         var authorName = thought.authorDisplayName || '匿名';
         var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
         var authorClass = thought.authorId ? ' card-author--clickable' : '';
+        var verifiedBadge = ((thought.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
         var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
         var tagHtml = (thought.tags && thought.tags.length)
             ? thought.tags.map(function (t) { return '<span class="tag">' + _escape(t) + '</span>'; }).join('')
@@ -660,7 +676,7 @@
         var cardClass = 'card' + (compact ? ' card--compact' : '');
         return '<div class="' + cardClass + '" data-id="' + _escape(thought.id) + '">' +
             '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
-            authorIconHtml + '<span class="card-author-name">' + _escape(authorName) + '</span>' +
+            authorIconHtml + '<span class="card-author-name">' + _escape(authorName) + '</span>' + verifiedBadge +
             '</div>' +
             '<h3>' + _escape(thought.title) + '</h3>' +
             '<div class="preview">' + _escape(plainText) + '</div>' +
@@ -840,13 +856,14 @@
             var authorName = thought.authorDisplayName || '匿名';
             var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
             var authorClass = thought.authorId ? ' card-author--clickable' : '';
+            var verifiedBadge = ((thought.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
             var card = document.createElement('div');
             card.className = 'card';
             card.dataset.id = thought.id;
             card.innerHTML =
                 '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
                 authorIconHtml +
-                '<span class="card-author-name">' + _escape(authorName) + '</span>' +
+                '<span class="card-author-name">' + _escape(authorName) + '</span>' + verifiedBadge +
                 '</div>' +
                 '<h3>' + _escape(thought.title) + '</h3>' +
                 '<div class="preview">' + _escape(plainText) + '</div>' +
@@ -974,6 +991,7 @@
             : '';
         var detailAuthorName = item.authorDisplayName || '匿名';
         var detailAuthorIconHtml = getAuthorIconHtml(item.authorIcon, item.authorIconBg, detailAuthorName, 'detail-author-icon');
+        var detailVerifiedBadge = ((item.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
         var detailLiked = isLikedByMe(item);
         var detailLikeImgSrc = getLikeIconSrc(detailLiked);
         var showFollowBtn = isLoggedIn() && item.authorId && !isOwnPost;
@@ -988,7 +1006,7 @@
             '<div class="detail-author-row">' +
             '<div class="detail-author' + authorClickable + '" data-author-id="' + (item.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
             detailAuthorIconHtml +
-            '<span class="detail-author-name">' + _escape(detailAuthorName) + '</span>' +
+            '<span class="detail-author-name">' + _escape(detailAuthorName) + '</span>' + detailVerifiedBadge +
             '</div>' +
             followBtnHtml +
             '</div>' +
@@ -1126,6 +1144,7 @@
             var currentUid = auth && auth.currentUser ? auth.currentUser.uid : '';
             replyListEl.innerHTML = sorted.map(function (r) {
                 var name = (r.authorDisplayName || '匿名');
+                var replyVerifiedBadge = ((r.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
                 var date = r.createdAt ? formatDate(r.createdAt) : '';
                 var replyLikes = typeof r.likes === 'number' ? r.likes : 0;
                 var replyLiked = isLikedByMeReply(r);
@@ -1137,7 +1156,7 @@
                     : '';
                 return '<div class="detail-reply-item" role="listitem" data-reply-id="' + _escape(replyId) + '">' +
                     '<div class="detail-reply-item-header">' +
-                    '<span class="detail-reply-item-author">' + _escape(name) + '</span>' +
+                    '<span class="detail-reply-item-author">' + _escape(name) + '</span>' + replyVerifiedBadge +
                     '<time class="detail-reply-item-date" datetime="' + _escape(r.createdAt || '') + '">' + _escape(date) + '</time>' +
                     '</div>' +
                     '<div class="detail-reply-item-body">' + _escape(r.body || '') + '</div>' +
@@ -1189,6 +1208,7 @@
                             body: data.body,
                             authorId: data.authorId,
                             authorDisplayName: data.authorDisplayName || '匿名',
+                            authorFollowersCount: typeof data.authorFollowersCount === 'number' ? data.authorFollowersCount : 0,
                             createdAt: data.createdAt,
                             likes: typeof data.likes === 'number' ? data.likes : 0,
                             likedBy: Array.isArray(data.likedBy) ? data.likedBy : []
@@ -1235,36 +1255,46 @@
         if (!isLoggedIn() || !auth || !auth.currentUser) return;
         var uid = auth.currentUser.uid;
         var displayName = getDisplayName(auth.currentUser);
-        var newReply = {
-            body: body,
-            authorId: uid,
-            authorDisplayName: displayName,
-            createdAt: new Date().toISOString(),
-            likes: 0,
-            likedBy: []
-        };
-        if (db) {
-            db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').add({
+        function addReply(authorFollowersCount) {
+            var fc = typeof authorFollowersCount === 'number' ? authorFollowersCount : 0;
+            var newReply = {
                 body: body,
                 authorId: uid,
                 authorDisplayName: displayName,
+                authorFollowersCount: fc,
                 createdAt: new Date().toISOString(),
                 likes: 0,
                 likedBy: []
-            }).then(function (ref) {
-                if (ref && ref.id) {
-                    newReply.id = ref.id;
-                    if (typeof onAdded === 'function') onAdded();
-                }
-            }).catch(function (err) { console.warn('Reply save failed', err); });
-        } else {
-            newReply.id = _uid();
-            if (typeof onAdded === 'function') onAdded();
+            };
+            if (db) {
+                db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').add({
+                    body: body,
+                    authorId: uid,
+                    authorDisplayName: displayName,
+                    authorFollowersCount: fc,
+                    createdAt: new Date().toISOString(),
+                    likes: 0,
+                    likedBy: []
+                }).then(function (ref) {
+                    if (ref && ref.id) {
+                        newReply.id = ref.id;
+                        if (typeof onAdded === 'function') onAdded();
+                    }
+                }).catch(function (err) { console.warn('Reply save failed', err); });
+            } else {
+                newReply.id = _uid();
+                if (typeof onAdded === 'function') onAdded();
+            }
+            var post = thoughts.find(function (t) { return t.id === postId; });
+            if (post) {
+                if (!post.replies) post.replies = [];
+                post.replies.push(newReply);
+            }
         }
-        var post = thoughts.find(function (t) { return t.id === postId; });
-        if (post) {
-            if (!post.replies) post.replies = [];
-            post.replies.push(newReply);
+        if (db && uid) {
+            loadUserProfile(uid).then(function (p) { addReply(p.followersCount); });
+        } else {
+            addReply(0);
         }
     }
 
@@ -1423,7 +1453,7 @@
         }
 
         if (avatarWrap) avatarWrap.outerHTML = getAuthorIconHtml(profile.icon, profile.iconBg, displayName, 'profile-page-avatar');
-        nameEl.textContent = displayName;
+        nameEl.innerHTML = _escape(displayName) + (followersCount > VERIFIED_FOLLOWERS_THRESHOLD ? getVerifiedBadgeHtml() : '');
         if (bioEl) {
             var bioText = (profile.bio || '').trim();
             bioEl.textContent = bioText;
@@ -1466,13 +1496,14 @@
                 var authorName = thought.authorDisplayName || '匿名';
                 var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
                 var authorClass = thought.authorId ? ' card-author--clickable' : '';
+                var cardVerifiedBadge = (followersCount > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
                 var card = document.createElement('div');
                 card.className = 'card profile-page-card-item';
                 card.dataset.id = thought.id;
                 card.innerHTML =
                     '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
                     authorIconHtml +
-                    '<span class="card-author-name">' + _escape(authorName) + '</span>' +
+                    '<span class="card-author-name">' + _escape(authorName) + '</span>' + cardVerifiedBadge +
                     '</div>' +
                     '<h3>' + _escape(thought.title) + '</h3>' +
                     '<div class="preview">' + _escape(plainText) + '</div>' +
@@ -1615,7 +1646,7 @@
             return;
         }
         Promise.all(uids.map(function (uid) {
-            return loadUserProfile(uid).then(function (p) { return { uid: uid, icon: p.icon, iconBg: p.iconBg, displayName: p.displayName || '匿名' }; });
+            return loadUserProfile(uid).then(function (p) { return { uid: uid, icon: p.icon, iconBg: p.iconBg, displayName: p.displayName || '匿名', followersCount: p.followersCount || 0 }; });
         })).then(function (users) {
             loadingEl.hidden = true;
             listEl.innerHTML = '';
@@ -1624,7 +1655,8 @@
                 li.className = 'follow-drawer-item';
                 li.dataset.uid = u.uid;
                 var iconHtml = getAuthorIconHtml(u.icon, u.iconBg, u.displayName, 'follow-drawer-item-icon');
-                li.innerHTML = '<a href="#" class="follow-drawer-item-link" data-uid="' + _escape(u.uid) + '" role="button">' + iconHtml + '<span class="follow-drawer-item-name">' + _escape(u.displayName) + '</span></a>';
+                var drawerVerifiedBadge = ((u.followersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
+                li.innerHTML = '<a href="#" class="follow-drawer-item-link" data-uid="' + _escape(u.uid) + '" role="button">' + iconHtml + '<span class="follow-drawer-item-name">' + _escape(u.displayName) + '</span>' + drawerVerifiedBadge + '</a>';
                 var link = li.querySelector('.follow-drawer-item-link');
                 if (link) {
                     link.addEventListener('click', function (e) {
@@ -2140,9 +2172,10 @@
 
         var uid = auth && auth.currentUser ? auth.currentUser.uid : '';
         var displayName = auth && auth.currentUser ? getDisplayName(auth.currentUser) : '';
-        function doSave(authorIcon, authorIconBg) {
+        function doSave(authorIcon, authorIconBg, authorFollowersCount) {
             authorIcon = authorIcon || '👤';
             authorIconBg = authorIconBg || '';
+            var fc = typeof authorFollowersCount === 'number' ? authorFollowersCount : 0;
             if (editingId) {
                 var item = thoughts.find(function (t) { return t.id === editingId; });
                 if (item) {
@@ -2151,7 +2184,7 @@
                     item.tags = tags;
                     item.toc = toc;
                     item.updatedAt = _now();
-                    if (uid) { item.authorId = uid; item.authorDisplayName = displayName; item.authorIcon = authorIcon; item.authorIconBg = authorIconBg; }
+                    if (uid) { item.authorId = uid; item.authorDisplayName = displayName; item.authorIcon = authorIcon; item.authorIconBg = authorIconBg; item.authorFollowersCount = fc; }
                 }
                 showToast('更新しました');
             } else {
@@ -2168,7 +2201,8 @@
                     authorId: uid,
                     authorDisplayName: displayName,
                     authorIcon: authorIcon,
-                    authorIconBg: authorIconBg
+                    authorIconBg: authorIconBg,
+                    authorFollowersCount: fc
                 });
                 showToast('投稿しました');
             }
@@ -2183,9 +2217,9 @@
             updateCharCounts();
         }
         if (uid && db) {
-            loadUserProfile(uid).then(function (profile) { doSave(profile.icon, profile.iconBg); });
+            loadUserProfile(uid).then(function (profile) { doSave(profile.icon, profile.iconBg, profile.followersCount); });
         } else {
-            doSave('👤', '');
+            doSave('👤', '', 0);
         }
     }
 

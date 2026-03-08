@@ -516,6 +516,27 @@ textarea,
     font-weight: 500;
 }
 
+/* フォロワー500人超の公式バッジ（表示名の横に表示） */
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    width: 1em;
+    height: 1em;
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #1d9bf0, #0d8bd9);
+    border-radius: 50%;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+[data-theme="dark"] .verified-badge {
+    background: linear-gradient(135deg, #1d9bf0, #0d8bd9);
+}
+
 .card-author--clickable {
     cursor: pointer;
     border-radius: 999px;
