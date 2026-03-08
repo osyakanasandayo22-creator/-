@@ -1961,7 +1961,14 @@ textarea,
     .editor-header-row--meta .editor-tags-input { min-width: 0; }
     .editor-main { padding: 0 14px 16px; }
     .editor-main .editor-body,
-    #post-content.editor-body { min-height: 120px; padding-top: 12px; padding-bottom: 12px; }
+    #post-content.editor-body {
+        flex: 0 0 auto;
+        height: 140px;
+        min-height: 140px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        overflow-y: auto;
+    }
     .profile-page-main,
     .settings-page-main { padding-left: 16px; padding-right: 16px; }
 
