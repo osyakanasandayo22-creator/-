@@ -11,6 +11,8 @@
     const PROFILE_ICON_BG_OPTIONS = [
         '', '#1a73e8', '#34a853', '#ea4335', '#f9ab00', '#8b5cf6', '#ec4899', '#0ea5e9', '#64748b', '#14b8a6'
     ];
+    const TITLE_MAX_LENGTH = 120;
+    const DISPLAY_NAME_MAX_LENGTH = 30;
 
     var db = null;
     var auth = null;
@@ -1011,6 +1013,7 @@
         var errorEl = document.getElementById('profile-settings-error');
         if (!overlay || !nameInput || !pickerEl) return;
         nameInput.value = getDisplayName(auth.currentUser);
+        updateDisplayNameCount();
         if (errorEl) errorEl.hidden = true;
         pickerEl.innerHTML = '';
         if (bgPickerEl) bgPickerEl.innerHTML = '';
@@ -1085,6 +1088,13 @@
         var bgPickerEl = document.getElementById('profile-icon-bg-picker');
         var errorEl = document.getElementById('profile-settings-error');
         var displayName = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
+        if (displayName.length > DISPLAY_NAME_MAX_LENGTH) {
+            if (errorEl) {
+                errorEl.textContent = '表示名は' + DISPLAY_NAME_MAX_LENGTH + '文字以内で入力してください';
+                errorEl.hidden = false;
+            }
+            return;
+        }
         var selectedBtn = pickerEl && pickerEl.querySelector('.profile-icon-option.selected');
         var icon = selectedBtn ? selectedBtn.getAttribute('data-icon') : '👤';
         var selectedBg = bgPickerEl && bgPickerEl.querySelector('.profile-icon-bg-option.selected');
@@ -1184,8 +1194,14 @@
         var contentEl = document.getElementById('post-content');
         var titleCount = document.getElementById('title-count');
         var contentCount = document.getElementById('content-count');
-        if (titleCount) titleCount.textContent = (titleEl ? titleEl.value.length : 0) + ' / 120';
+        if (titleCount) titleCount.textContent = (titleEl ? titleEl.value.length : 0) + ' / ' + TITLE_MAX_LENGTH;
         if (contentCount) contentCount.textContent = (contentEl ? (contentEl.textContent || '').length : 0) + ' 文字';
+    }
+
+    function updateDisplayNameCount() {
+        var el = document.getElementById('profile-settings-display-name');
+        var countEl = document.getElementById('profile-display-name-count');
+        if (countEl && el) countEl.textContent = (el.value || '').length + ' / ' + DISPLAY_NAME_MAX_LENGTH;
     }
 
     function deletePost(id) {
@@ -1219,6 +1235,10 @@
         var plainText = contentEl ? (contentEl.textContent || '').replace(/\u200B/g, '').trim() : '';
         if (!title || !plainText) {
             showToast('タイトルと内容を入力してください');
+            return;
+        }
+        if (title.length > TITLE_MAX_LENGTH) {
+            showToast('タイトルは' + TITLE_MAX_LENGTH + '文字以内で入力してください');
             return;
         }
 
@@ -1467,6 +1487,8 @@
     if (profileSettingsCancel) profileSettingsCancel.addEventListener('click', closeProfileSettingsModal);
     var profileSettingsSave = document.getElementById('profile-settings-save');
     if (profileSettingsSave) profileSettingsSave.addEventListener('click', saveProfileSettings);
+    var profileDisplayNameInput = document.getElementById('profile-settings-display-name');
+    if (profileDisplayNameInput) profileDisplayNameInput.addEventListener('input', updateDisplayNameCount);
     var profileSettingsOverlayEl = document.getElementById('profile-settings-overlay');
     if (profileSettingsOverlayEl) profileSettingsOverlayEl.addEventListener('click', function (e) {
         if (e.target === profileSettingsOverlayEl) closeProfileSettingsModal();
@@ -1523,6 +1545,11 @@
     });
     var authGoogleBtn = document.getElementById('auth-google-btn');
     if (authGoogleBtn) authGoogleBtn.addEventListener('click', doGoogleSignIn);
+
+    var titleInput = document.getElementById('post-title');
+    if (titleInput) titleInput.setAttribute('maxlength', String(TITLE_MAX_LENGTH));
+    var displayNameInput = document.getElementById('profile-settings-display-name');
+    if (displayNameInput) displayNameInput.setAttribute('maxlength', String(DISPLAY_NAME_MAX_LENGTH));
 
     initTheme();
     initRichEditor();

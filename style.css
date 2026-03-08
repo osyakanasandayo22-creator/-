@@ -957,6 +957,25 @@ body {
     border-style: dashed;
 }
 
+.profile-settings-display-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.profile-settings-display-name-wrap .auth-input {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-display-name-count {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--text-sub);
+}
+
 .profile-settings-form .auth-input {
     width: 100%;
     padding: 10px 12px;

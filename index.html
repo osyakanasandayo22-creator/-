@@ -196,7 +196,10 @@
                     <!-- script で色候補を挿入 -->
                 </div>
                 <label class="auth-label">表示名</label>
-                <input type="text" id="profile-settings-display-name" class="auth-input" placeholder="表示名" maxlength="30" autocomplete="off">
+                <div class="profile-settings-display-name-wrap">
+                    <input type="text" id="profile-settings-display-name" class="auth-input" placeholder="表示名" maxlength="30" autocomplete="off">
+                    <span class="char-count profile-display-name-count" id="profile-display-name-count" aria-live="polite">0 / 30</span>
+                </div>
                 <p class="profile-settings-error" id="profile-settings-error" hidden></p>
                 <div class="profile-settings-buttons">
                     <button type="button" class="btn primary" id="profile-settings-save">保存</button>
