@@ -2083,6 +2083,35 @@
         var wrap = document.getElementById('auth-user');
         if (wrap && !wrap.contains(e.target)) closeProfileDropdown();
     });
+    /* スクロール時にプロフィールドロップダウンを閉じる */
+    var scrollCloseTimeout = null;
+    function onScrollCloseProfile() {
+        var dropdown = document.getElementById('profile-dropdown');
+        if (dropdown && !dropdown.hidden) closeProfileDropdown();
+    }
+    window.addEventListener('scroll', function () {
+        if (scrollCloseTimeout) clearTimeout(scrollCloseTimeout);
+        scrollCloseTimeout = setTimeout(onScrollCloseProfile, 50);
+    }, { passive: true });
+
+    /* スマホ：下スクロールでヘッダーを隠し、上スクロールまたは最上部で表示 */
+    var siteHeader = document.querySelector('.site-header');
+    var lastScrollY = 0;
+    var scrollThresh = 8;
+    if (siteHeader) {
+        window.addEventListener('scroll', function () {
+            var y = window.scrollY || window.pageYOffset;
+            if (y <= scrollThresh) {
+                siteHeader.classList.remove('site-header--hidden');
+            } else if (y > lastScrollY) {
+                siteHeader.classList.add('site-header--hidden');
+            } else {
+                siteHeader.classList.remove('site-header--hidden');
+            }
+            lastScrollY = y;
+        }, { passive: true });
+    }
+
     var authClose = document.getElementById('auth-close');
     if (authClose) authClose.addEventListener('click', closeLoginModal);
     var authOverlayEl = document.getElementById('auth-overlay');
