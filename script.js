@@ -5,6 +5,7 @@
     const THEME_KEY = 'philo_theme';
     const FIRESTORE_COLLECTION = 'posts';
     const FIRESTORE_USERS_COLLECTION = 'users';
+    var myFollowingSet = new Set();
     const PROFILE_ICON_OPTIONS = ['👤', '👨', '👩', '🧑', '🎭', '🦊', '🐱', '🐶', '🌟', '✨', '🎨', '📚', '🌸', '🍀'];
     const PROFILE_ICON_INITIAL = 'initial';
     const PROFILE_ICON_BG_OPTIONS = [
@@ -76,6 +77,7 @@
             if (postTrigger) postTrigger.style.visibility = '';
             if (auth && auth.currentUser && db) {
                 loadUserProfile(auth.currentUser.uid).then(function (profile) { updateHeaderAvatar(profile); });
+                loadMyFollowing();
             }
         } else {
             loginBtn.hidden = false;
@@ -162,6 +164,7 @@
     let editingId = null;
     let currentDetailId = null;
     let searchTimeout = null;
+    let viewingProfileUserId = null;
 
     function save() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
@@ -201,13 +204,65 @@
     }
 
     function loadUserProfile(uid) {
-        if (!db || !uid) return Promise.resolve({ icon: '👤', iconBg: '' });
+        if (!db || !uid) return Promise.resolve({ icon: '👤', iconBg: '', displayName: '', following: [], followersCount: 0 });
         return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).get()
             .then(function (doc) {
                 var d = doc.data();
-                return { icon: (d && d.icon) || '👤', iconBg: (d && d.iconBg) || '' };
+                return {
+                    icon: (d && d.icon) || '👤',
+                    iconBg: (d && d.iconBg) || '',
+                    displayName: (d && d.displayName) || '',
+                    following: Array.isArray(d && d.following) ? d.following : [],
+                    followersCount: typeof (d && d.followersCount) === 'number' ? d.followersCount : 0
+                };
             })
-            .catch(function () { return { icon: '👤', iconBg: '' }; });
+            .catch(function () { return { icon: '👤', iconBg: '', displayName: '', following: [], followersCount: 0 }; });
+    }
+
+    function loadMyFollowing() {
+        if (!db || !auth || !auth.currentUser) return Promise.resolve();
+        var uid = auth.currentUser.uid;
+        var ref = db.collection(FIRESTORE_USERS_COLLECTION).doc(uid);
+        return ref.get()
+            .then(function (doc) {
+                if (!doc.exists) {
+                    return ref.set({ following: [] }, { merge: true }).then(function () {
+                        myFollowingSet = new Set();
+                    });
+                }
+                var d = doc.data();
+                var arr = Array.isArray(d && d.following) ? d.following : [];
+                myFollowingSet = new Set(arr);
+            })
+            .catch(function () { myFollowingSet = new Set(); });
+    }
+
+    function isFollowing(targetUid) {
+        return !!targetUid && myFollowingSet.has(targetUid);
+    }
+
+    function followUser(targetUid) {
+        if (!db || !auth || !auth.currentUser || !targetUid || targetUid === auth.currentUser.uid) return Promise.reject(new Error('invalid'));
+        var myUid = auth.currentUser.uid;
+        myFollowingSet.add(targetUid);
+        var batch = db.batch();
+        var myRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(myUid);
+        batch.update(myRef, { following: firebase.firestore.FieldValue.arrayUnion(targetUid) });
+        var targetRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(targetUid);
+        batch.set(targetRef, { followersCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+        return batch.commit();
+    }
+
+    function unfollowUser(targetUid) {
+        if (!db || !auth || !auth.currentUser || !targetUid) return Promise.reject(new Error('invalid'));
+        var myUid = auth.currentUser.uid;
+        myFollowingSet.delete(targetUid);
+        var batch = db.batch();
+        var myRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(myUid);
+        batch.update(myRef, { following: firebase.firestore.FieldValue.arrayRemove(targetUid) });
+        var targetRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(targetUid);
+        batch.set(targetRef, { followersCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true });
+        return batch.commit();
     }
 
     function getAuthorIconHtml(icon, iconBg, displayName, iconClass) {
@@ -224,7 +279,12 @@
 
     function saveUserProfile(uid, data) {
         if (!db || !uid) return Promise.resolve();
-        return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).set(data, { merge: true });
+        var payload = {};
+        if (data.icon !== undefined) payload.icon = data.icon;
+        if (data.iconBg !== undefined) payload.iconBg = data.iconBg;
+        if (data.displayName !== undefined) payload.displayName = data.displayName;
+        if (Object.keys(payload).length === 0) return Promise.resolve();
+        return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).set(payload, { merge: true });
     }
 
     var editorState = { size: 'normal', font: 'sans', color: null };
@@ -542,11 +602,12 @@
             const likeImgSrc = getLikeIconSrc(liked);
             const authorName = thought.authorDisplayName || '匿名';
             const authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
+            var authorClass = thought.authorId ? ' card-author--clickable' : '';
             const card = document.createElement('div');
             card.className = 'card';
             card.dataset.id = thought.id;
             card.innerHTML =
-                '<div class="card-author">' +
+                '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
                 authorIconHtml +
                 '<span class="card-author-name">' + _escape(authorName) + '</span>' +
                 '</div>' +
@@ -563,8 +624,23 @@
                 '</div>';
             card.onclick = function (e) {
                 if (e.target.closest('.like-btn')) return;
+                if (e.target.closest('.card-author--clickable')) return;
                 showDetail(thought.id);
             };
+            var authorEl = card.querySelector('.card-author[data-author-id]');
+            if (authorEl && thought.authorId) {
+                authorEl.onclick = function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openProfileView(thought.authorId);
+                };
+                authorEl.onkeydown = function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        authorEl.click();
+                    }
+                };
+            }
             var likeBtn = card.querySelector('.like-btn');
             if (likeBtn) {
                 likeBtn.addEventListener('click', function (e) {
@@ -623,6 +699,7 @@
         currentDetailId = id;
         const likes = typeof item.likes === 'number' ? item.likes : 0;
         var showActions = isLoggedIn();
+        var isOwnPost = showActions && auth.currentUser.uid === item.authorId;
         var actionsHtml = showActions
             ? '<div class="detail-actions">' +
               '<button type="button" class="btn btn--outline" data-action="edit" data-id="' + _escape(item.id) + '">編集</button>' +
@@ -633,11 +710,20 @@
         var detailAuthorIconHtml = getAuthorIconHtml(item.authorIcon, item.authorIconBg, detailAuthorName, 'detail-author-icon');
         var detailLiked = isLikedByMe(item);
         var detailLikeImgSrc = getLikeIconSrc(detailLiked);
+        var showFollowBtn = isLoggedIn() && item.authorId && !isOwnPost;
+        var followBtnHtml = showFollowBtn
+            ? '<button type="button" class="btn btn--outline btn-sm detail-follow-btn" data-action="follow" data-author-id="' + _escape(item.authorId) + '" title="' + (isFollowing(item.authorId) ? 'フォローを解除' : 'フォロー') + '">' +
+              (isFollowing(item.authorId) ? 'フォローを解除' : 'フォロー') + '</button>'
+            : '';
+        var authorClickable = item.authorId ? ' detail-author--clickable' : '';
         modalBody.innerHTML =
             '<article class="detail-card">' +
-            '<div class="detail-author">' +
+            '<div class="detail-author-row">' +
+            '<div class="detail-author' + authorClickable + '" data-author-id="' + (item.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
             detailAuthorIconHtml +
             '<span class="detail-author-name">' + _escape(detailAuthorName) + '</span>' +
+            '</div>' +
+            followBtnHtml +
             '</div>' +
             '<h2 class="detail-title">' + _escape(item.title) + '</h2>' +
             '<div class="detail-meta-line">' +
@@ -658,15 +744,56 @@
         modalOverlay.style.display = 'block';
         document.body.style.overflow = 'hidden';
 
+        var authorEl = modalBody.querySelector('.detail-author[data-author-id]');
+        if (authorEl && item.authorId) {
+            authorEl.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openProfileView(item.authorId);
+                closeModal(modalOverlay);
+            };
+            authorEl.onkeydown = function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    authorEl.click();
+                }
+            };
+        }
+
+        var followBtn = modalBody.querySelector('[data-action="follow"]');
+        if (followBtn) {
+            followBtn.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var targetUid = followBtn.getAttribute('data-author-id');
+                if (!targetUid) return;
+                if (isFollowing(targetUid)) {
+                    unfollowUser(targetUid).then(function () {
+                        followBtn.textContent = 'フォロー';
+                        followBtn.title = 'フォロー';
+                        showToast('フォローを解除しました');
+                    }).catch(function () { showToast('フォロー解除に失敗しました'); });
+                } else {
+                    followUser(targetUid).then(function () {
+                        followBtn.textContent = 'フォローを解除';
+                        followBtn.title = 'フォローを解除';
+                        showToast('フォローしました');
+                    }).catch(function () { showToast('フォローに失敗しました'); });
+                }
+            };
+        }
+
         modalBody.querySelector('[data-action="like"]').onclick = function () {
             incrementLike(item.id);
         };
         if (showActions) {
-            modalBody.querySelector('[data-action="edit"]').onclick = function () {
+            var editBtn = modalBody.querySelector('[data-action="edit"]');
+            var deleteBtn = modalBody.querySelector('[data-action="delete"]');
+            if (editBtn) editBtn.onclick = function () {
                 openPostModal(item.id);
                 closeModal(modalOverlay);
             };
-            modalBody.querySelector('[data-action="delete"]').onclick = function () {
+            if (deleteBtn) deleteBtn.onclick = function () {
                 deletePost(item.id);
                 closeModal(modalOverlay);
                 renderFeed();
@@ -696,39 +823,82 @@
             .sort(function (a, b) { return (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || ''); });
     }
 
-    function renderProfilePage(profile) {
-        profile = profile || { icon: '👤', iconBg: '' };
+    function getPostsByAuthor(uid) {
+        if (!uid) return [];
+        return thoughts.filter(function (t) { return t.authorId === uid; })
+            .sort(function (a, b) { return (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || ''); });
+    }
+
+    function renderProfilePage(profile, opts) {
+        opts = opts || {};
+        profile = profile || { icon: '👤', iconBg: '', displayName: '', following: [], followersCount: 0 };
         var avatarWrap = document.getElementById('profile-page-avatar');
         var nameEl = document.getElementById('profile-page-name');
         var followersEl = document.getElementById('profile-followers-count');
         var followingEl = document.getElementById('profile-following-count');
         var listEl = document.getElementById('profile-posts-list');
         var emptyEl = document.getElementById('profile-posts-empty');
+        var settingsBtn = document.getElementById('profile-settings-btn');
+        var followBtnWrap = document.getElementById('profile-follow-btn-wrap');
         if (!nameEl || !listEl) return;
-        var user = auth && auth.currentUser ? auth.currentUser : null;
-        var displayName = user ? getDisplayName(user) : 'ログイン中';
+        var isOtherUser = opts.isOtherUser && opts.userId;
+        var displayName;
+        var postsList;
+        var followingCount = (profile.following && profile.following.length) || 0;
+        var followersCount = Math.max(0, typeof profile.followersCount === 'number' ? profile.followersCount : 0);
+
+        if (isOtherUser) {
+            displayName = opts.displayName || profile.displayName || '匿名';
+            postsList = getPostsByAuthor(opts.userId);
+        } else {
+            var user = auth && auth.currentUser ? auth.currentUser : null;
+            displayName = user ? getDisplayName(user) : 'ログイン中';
+            postsList = getMyPosts();
+        }
+
         if (avatarWrap) avatarWrap.outerHTML = getAuthorIconHtml(profile.icon, profile.iconBg, displayName, 'profile-page-avatar');
         nameEl.textContent = displayName;
-        if (followersEl) followersEl.textContent = '0';
-        if (followingEl) followingEl.textContent = '0';
-        var myPosts = getMyPosts();
+        if (followersEl) followersEl.textContent = String(followersCount);
+        if (followingEl) followingEl.textContent = String(isOtherUser ? followingCount : (profile.following && profile.following.length) || 0);
+
+        if (settingsBtn) {
+            settingsBtn.hidden = isOtherUser;
+            if (!settingsBtn.hidden) settingsBtn.style.display = '';
+            else settingsBtn.style.display = 'none';
+        }
+        if (followBtnWrap) {
+            var showFollowBtn = isOtherUser && isLoggedIn();
+            followBtnWrap.hidden = !showFollowBtn;
+            if (!followBtnWrap.hidden) followBtnWrap.style.display = '';
+            else followBtnWrap.style.display = 'none';
+            if (isOtherUser && followBtnWrap) {
+                var followBtn = followBtnWrap.querySelector('.profile-follow-btn');
+                if (followBtn) {
+                    followBtn.textContent = isFollowing(opts.userId) ? 'フォローを解除' : 'フォロー';
+                    followBtn.title = isFollowing(opts.userId) ? 'フォローを解除' : 'フォロー';
+                    followBtn.dataset.authorId = opts.userId;
+                }
+            }
+        }
+
         listEl.innerHTML = '';
-        if (myPosts.length === 0) {
+        if (postsList.length === 0) {
             if (emptyEl) { emptyEl.hidden = false; }
         } else {
             if (emptyEl) emptyEl.hidden = true;
-            myPosts.forEach(function (thought) {
+            postsList.forEach(function (thought) {
                 var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
                 var likes = typeof thought.likes === 'number' ? thought.likes : 0;
                 var liked = isLikedByMe(thought);
                 var likeImgSrc = getLikeIconSrc(liked);
                 var authorName = thought.authorDisplayName || '匿名';
                 var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
+                var authorClass = thought.authorId ? ' card-author--clickable' : '';
                 var card = document.createElement('div');
                 card.className = 'card profile-page-card-item';
                 card.dataset.id = thought.id;
                 card.innerHTML =
-                    '<div class="card-author">' +
+                    '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
                     authorIconHtml +
                     '<span class="card-author-name">' + _escape(authorName) + '</span>' +
                     '</div>' +
@@ -745,8 +915,23 @@
                     '</div>';
                 card.onclick = function (e) {
                     if (e.target.closest('.like-btn')) return;
+                    if (e.target.closest('.card-author--clickable')) return;
                     showDetail(thought.id);
                 };
+                var authorEl = card.querySelector('.card-author[data-author-id]');
+                if (authorEl && thought.authorId) {
+                    authorEl.onclick = function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openProfileView(thought.authorId);
+                    };
+                    authorEl.onkeydown = function (e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            authorEl.click();
+                        }
+                    };
+                }
                 var likeBtn = card.querySelector('.like-btn');
                 if (likeBtn) {
                     likeBtn.addEventListener('click', function (e) {
@@ -760,12 +945,55 @@
         }
     }
 
-    function openProfileView() {
-        if (!isLoggedIn()) return;
-        var uid = auth.currentUser.uid;
-        loadUserProfile(uid).then(function (profile) {
-            renderProfilePage(profile);
-        });
+    function openProfileView(uid) {
+        if (!isLoggedIn() && !uid) return;
+        var myUid = auth && auth.currentUser ? auth.currentUser.uid : null;
+        if (!uid || uid === myUid) {
+            viewingProfileUserId = null;
+            if (!myUid) return;
+            loadUserProfile(myUid).then(function (profile) {
+                renderProfilePage(profile);
+            });
+        } else {
+            viewingProfileUserId = uid;
+            loadUserProfile(uid).then(function (profile) {
+                var displayName = profile.displayName || '';
+                if (!displayName) {
+                    var firstPost = getPostsByAuthor(uid)[0];
+                    if (firstPost) displayName = firstPost.authorDisplayName || '匿名';
+                    else displayName = '匿名';
+                }
+                renderProfilePage(profile, {
+                    isOtherUser: true,
+                    userId: uid,
+                    displayName: displayName
+                });
+                var followBtn = document.querySelector('.profile-follow-btn');
+                if (followBtn) {
+                    followBtn.onclick = function () {
+                        var targetUid = followBtn.getAttribute('data-author-id');
+                        if (!targetUid) return;
+                        if (isFollowing(targetUid)) {
+                            unfollowUser(targetUid).then(function () {
+                                followBtn.textContent = 'フォロー';
+                                followBtn.title = 'フォロー';
+                                var fc = document.getElementById('profile-followers-count');
+                                if (fc) fc.textContent = String(Math.max(0, parseInt(fc.textContent, 10) - 1));
+                                showToast('フォローを解除しました');
+                            }).catch(function () { showToast('フォロー解除に失敗しました'); });
+                        } else {
+                            followUser(targetUid).then(function () {
+                                followBtn.textContent = 'フォローを解除';
+                                followBtn.title = 'フォローを解除';
+                                var fc = document.getElementById('profile-followers-count');
+                                if (fc) fc.textContent = String(parseInt(fc.textContent, 10) + 1);
+                                showToast('フォローしました');
+                            }).catch(function () { showToast('フォローに失敗しました'); });
+                        }
+                    };
+                }
+            });
+        }
         if (viewFeed) viewFeed.hidden = true;
         if (viewEditor) viewEditor.hidden = true;
         if (viewProfile) {
@@ -869,7 +1097,7 @@
             p = auth.currentUser.updateProfile({ displayName: displayName || '' });
         }
         p.then(function () {
-            return saveUserProfile(uid, { icon: icon, iconBg: iconBg });
+            return saveUserProfile(uid, { icon: icon, iconBg: iconBg, displayName: displayName || getDisplayName(auth.currentUser) });
         }).then(function () {
             thoughts.forEach(function (t) {
                 if (t.authorId === uid) {

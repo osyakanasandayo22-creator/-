@@ -252,6 +252,16 @@ body {
     font-weight: 500;
 }
 
+.card-author--clickable {
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+}
+.card-author--clickable:hover {
+    background: var(--bg-elevated);
+}
+
 .card h3 {
     margin: 0 0 6px 0;
     font-size: 1.0625rem;
@@ -502,12 +512,34 @@ body {
     }
 }
 
+.detail-author-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 24px 0;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
 .detail-author {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 20px 24px 0;
-    margin-bottom: 8px;
+}
+
+.detail-author--clickable {
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 4px 6px;
+    margin: -4px -6px 0 -6px;
+}
+.detail-author--clickable:hover {
+    background: var(--bg-elevated);
+}
+
+.detail-follow-btn {
+    flex-shrink: 0;
 }
 
 .detail-author-icon {
@@ -832,6 +864,14 @@ body {
 
 .profile-settings-btn {
     margin-top: 20px;
+}
+
+.profile-follow-btn-wrap {
+    margin-top: 20px;
+}
+
+.profile-follow-btn-wrap .profile-follow-btn {
+    min-width: 120px;
 }
 
 /* プロフィール設定モーダル */
