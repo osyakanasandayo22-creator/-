@@ -62,12 +62,18 @@
         if (trigger) trigger.setAttribute('aria-expanded', 'false');
         if (isLoggedIn()) {
             loginBtn.hidden = true;
+            loginBtn.removeAttribute('hidden');
             authUser.hidden = false;
+            authUser.removeAttribute('hidden');
+            authUser.style.display = '';
             if (displayNameEl) displayNameEl.textContent = getDisplayName(auth ? auth.currentUser : null);
             if (postTrigger) postTrigger.style.visibility = '';
         } else {
             loginBtn.hidden = false;
+            loginBtn.removeAttribute('hidden');
             authUser.hidden = true;
+            authUser.setAttribute('hidden', '');
+            authUser.style.display = 'none';
             if (postTrigger) postTrigger.style.visibility = '';
         }
     }
