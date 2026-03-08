@@ -20,7 +20,7 @@
     }
 
     function isLoggedIn() {
-        if (!auth) return true;
+        if (!auth) return false;
         return !!auth.currentUser;
     }
 
@@ -884,9 +884,19 @@
     });
     var profileLogout = document.getElementById('profile-logout');
     if (profileLogout) profileLogout.addEventListener('click', function () {
-        if (auth) auth.signOut();
         closeProfileDropdown();
-        showToast('ログアウトしました');
+        if (auth) {
+            auth.signOut().then(function () {
+                updateAuthUI();
+                showToast('ログアウトしました');
+            }).catch(function () {
+                updateAuthUI();
+                showToast('ログアウトしました');
+            });
+        } else {
+            updateAuthUI();
+            showToast('ログアウトしました');
+        }
     });
     document.addEventListener('click', function (e) {
         var wrap = document.getElementById('auth-user');
