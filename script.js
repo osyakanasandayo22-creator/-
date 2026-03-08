@@ -177,6 +177,7 @@
     let currentDetailId = null;
     let searchTimeout = null;
     let viewingProfileUserId = null;
+    var currentProfileForDrawer = { userId: null, following: [], followers: [] };
 
     function save() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
@@ -216,7 +217,7 @@
     }
 
     function loadUserProfile(uid) {
-        if (!db || !uid) return Promise.resolve({ icon: '👤', iconBg: '', displayName: '', following: [], followersCount: 0 });
+        if (!db || !uid) return Promise.resolve({ icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 });
         return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).get()
             .then(function (doc) {
                 var d = doc.data();
@@ -225,10 +226,11 @@
                     iconBg: (d && d.iconBg) || '',
                     displayName: (d && d.displayName) || '',
                     following: Array.isArray(d && d.following) ? d.following : [],
+                    followers: Array.isArray(d && d.followers) ? d.followers : [],
                     followersCount: typeof (d && d.followersCount) === 'number' ? d.followersCount : 0
                 };
             })
-            .catch(function () { return { icon: '👤', iconBg: '', displayName: '', following: [], followersCount: 0 }; });
+            .catch(function () { return { icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 }; });
     }
 
     function loadMyFollowing() {
@@ -261,7 +263,10 @@
         var myRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(myUid);
         batch.set(myRef, { following: firebase.firestore.FieldValue.arrayUnion(targetUid) }, { merge: true });
         var targetRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(targetUid);
-        batch.set(targetRef, { followersCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+        batch.set(targetRef, {
+            followersCount: firebase.firestore.FieldValue.increment(1),
+            followers: firebase.firestore.FieldValue.arrayUnion(myUid)
+        }, { merge: true });
         return batch.commit();
     }
 
@@ -273,7 +278,10 @@
         var myRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(myUid);
         batch.set(myRef, { following: firebase.firestore.FieldValue.arrayRemove(targetUid) }, { merge: true });
         var targetRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(targetUid);
-        batch.set(targetRef, { followersCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true });
+        batch.set(targetRef, {
+            followersCount: firebase.firestore.FieldValue.increment(-1),
+            followers: firebase.firestore.FieldValue.arrayRemove(myUid)
+        }, { merge: true });
         return batch.commit();
     }
 
@@ -1081,7 +1089,7 @@
 
     function renderProfilePage(profile, opts) {
         opts = opts || {};
-        profile = profile || { icon: '👤', iconBg: '', displayName: '', following: [], followersCount: 0 };
+        profile = profile || { icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 };
         var avatarWrap = document.getElementById('profile-page-avatar');
         var nameEl = document.getElementById('profile-page-name');
         var followersEl = document.getElementById('profile-followers-count');
@@ -1193,6 +1201,11 @@
                 listEl.appendChild(card);
             });
         }
+        currentProfileForDrawer = {
+            userId: isOtherUser ? opts.userId : (auth && auth.currentUser ? auth.currentUser.uid : null),
+            following: profile.following || [],
+            followers: profile.followers || []
+        };
     }
 
     function openProfileView(uid) {
@@ -1250,6 +1263,67 @@
             viewProfile.hidden = false;
             viewProfile.style.display = 'flex';
         }
+        document.body.style.overflow = '';
+    }
+
+    function openFollowDrawer(title, uids) {
+        var overlay = document.getElementById('follow-drawer-overlay');
+        var drawer = document.getElementById('follow-drawer');
+        var titleEl = document.getElementById('follow-drawer-title');
+        var listEl = document.getElementById('follow-drawer-list');
+        var emptyEl = document.getElementById('follow-drawer-empty');
+        var loadingEl = document.getElementById('follow-drawer-loading');
+        if (!overlay || !drawer || !titleEl || !listEl) return;
+        titleEl.textContent = title;
+        listEl.innerHTML = '';
+        emptyEl.hidden = true;
+        loadingEl.hidden = false;
+        overlay.hidden = false;
+        drawer.hidden = false;
+        overlay.setAttribute('aria-hidden', 'false');
+        drawer.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+
+        if (!uids || uids.length === 0) {
+            loadingEl.hidden = true;
+            emptyEl.hidden = false;
+            emptyEl.textContent = title === 'フォロワー' ? 'フォロワーはいません' : 'フォローしている人はいません';
+            return;
+        }
+        Promise.all(uids.map(function (uid) {
+            return loadUserProfile(uid).then(function (p) { return { uid: uid, icon: p.icon, iconBg: p.iconBg, displayName: p.displayName || '匿名' }; });
+        })).then(function (users) {
+            loadingEl.hidden = true;
+            listEl.innerHTML = '';
+            users.forEach(function (u) {
+                var li = document.createElement('li');
+                li.className = 'follow-drawer-item';
+                li.dataset.uid = u.uid;
+                var iconHtml = getAuthorIconHtml(u.icon, u.iconBg, u.displayName, 'follow-drawer-item-icon');
+                li.innerHTML = '<a href="#" class="follow-drawer-item-link" data-uid="' + _escape(u.uid) + '" role="button">' + iconHtml + '<span class="follow-drawer-item-name">' + _escape(u.displayName) + '</span></a>';
+                var link = li.querySelector('.follow-drawer-item-link');
+                if (link) {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        var targetUid = link.getAttribute('data-uid');
+                        closeFollowDrawer();
+                        if (targetUid) openProfileView(targetUid);
+                    });
+                }
+                listEl.appendChild(li);
+            });
+        }).catch(function () {
+            loadingEl.hidden = true;
+            emptyEl.hidden = false;
+            emptyEl.textContent = '読み込みに失敗しました';
+        });
+    }
+
+    function closeFollowDrawer() {
+        var overlay = document.getElementById('follow-drawer-overlay');
+        var drawer = document.getElementById('follow-drawer');
+        if (overlay) { overlay.hidden = true; overlay.setAttribute('aria-hidden', 'true'); }
+        if (drawer) { drawer.hidden = true; drawer.setAttribute('aria-hidden', 'true'); }
         document.body.style.overflow = '';
     }
 
@@ -1880,6 +1954,18 @@
     });
     var profileBackBtn = document.getElementById('profile-back-btn');
     if (profileBackBtn) profileBackBtn.addEventListener('click', closeProfileView);
+    var profileFollowersTrigger = document.getElementById('profile-followers-trigger');
+    if (profileFollowersTrigger) profileFollowersTrigger.addEventListener('click', function () {
+        openFollowDrawer('フォロワー', (currentProfileForDrawer && currentProfileForDrawer.followers) ? currentProfileForDrawer.followers : []);
+    });
+    var profileFollowingTrigger = document.getElementById('profile-following-trigger');
+    if (profileFollowingTrigger) profileFollowingTrigger.addEventListener('click', function () {
+        openFollowDrawer('フォロー', (currentProfileForDrawer && currentProfileForDrawer.following) ? currentProfileForDrawer.following : []);
+    });
+    var followDrawerClose = document.getElementById('follow-drawer-close');
+    if (followDrawerClose) followDrawerClose.addEventListener('click', closeFollowDrawer);
+    var followDrawerOverlay = document.getElementById('follow-drawer-overlay');
+    if (followDrawerOverlay) followDrawerOverlay.addEventListener('click', closeFollowDrawer);
     var settingsBackBtn = document.getElementById('settings-back-btn');
     if (settingsBackBtn) settingsBackBtn.addEventListener('click', handleSettingsBack);
     var settingsContactBtn = document.getElementById('settings-contact-btn');

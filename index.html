@@ -79,8 +79,25 @@
                 <div class="profile-page-avatar" id="profile-page-avatar" aria-hidden="true">👤</div>
                 <h2 class="profile-page-name" id="profile-page-name"></h2>
                 <div class="profile-page-stats">
-                    <span class="profile-stat"><strong id="profile-followers-count">0</strong> フォロワー</span>
-                    <span class="profile-stat"><strong id="profile-following-count">0</strong> フォロー</span>
+                    <button type="button" class="profile-stat-btn" id="profile-followers-trigger" aria-label="フォロワー一覧">
+                        <strong id="profile-followers-count">0</strong> フォロワー
+                    </button>
+                    <button type="button" class="profile-stat-btn" id="profile-following-trigger" aria-label="フォロー一覧">
+                        <strong id="profile-following-count">0</strong> フォロー
+                    </button>
+                </div>
+                <!-- フォロワー/フォロー一覧ドロワー -->
+                <div class="follow-drawer-overlay" id="follow-drawer-overlay" hidden aria-hidden="true"></div>
+                <div class="follow-drawer" id="follow-drawer" hidden aria-hidden="true" role="dialog" aria-labelledby="follow-drawer-title">
+                    <div class="follow-drawer-header">
+                        <h3 id="follow-drawer-title" class="follow-drawer-title"></h3>
+                        <button type="button" class="follow-drawer-close" id="follow-drawer-close" aria-label="閉じる">×</button>
+                    </div>
+                    <div class="follow-drawer-body">
+                        <ul class="follow-drawer-list" id="follow-drawer-list" role="list"></ul>
+                        <p class="follow-drawer-empty" id="follow-drawer-empty" hidden>いません</p>
+                        <p class="follow-drawer-loading" id="follow-drawer-loading" hidden>読み込み中…</p>
+                    </div>
                 </div>
                 <button type="button" class="btn btn--outline profile-settings-btn" id="profile-settings-btn">プロフィールを設定</button>
                 <div id="profile-follow-btn-wrap" class="profile-follow-btn-wrap" hidden>
