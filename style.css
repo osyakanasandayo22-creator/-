@@ -629,6 +629,73 @@ body {
     gap: 8px;
 }
 
+/* 返信フォーム（詳細モーダル下部） */
+.detail-reply-section {
+    padding: 20px 24px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-card);
+}
+
+.detail-reply-heading {
+    margin: 0 0 12px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-sub);
+}
+
+.detail-reply-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-reply-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px 14px;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--text-main);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    resize: vertical;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.detail-reply-textarea::placeholder {
+    color: var(--text-sub);
+}
+
+.detail-reply-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--bg-card);
+}
+
+.detail-reply-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.detail-reply-count {
+    font-size: 0.8125rem;
+    color: var(--text-sub);
+}
+
+.detail-reply-submit {
+    flex-shrink: 0;
+}
+
+.detail-reply-login-hint {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--text-sub);
+}
+
 .btn--outline {
     background: transparent;
     color: var(--text-main);

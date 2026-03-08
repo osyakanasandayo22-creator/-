@@ -98,11 +98,11 @@
                 <button type="button" class="btn primary editor-save-btn" id="submit-post">投稿する</button>
             </div>
             <div class="editor-header-row">
-                <input type="text" id="post-title" placeholder="タイトル" maxlength="120" class="editor-title-input">
+                <input type="text" id="post-title" placeholder="タイトル" maxlength="50" class="editor-title-input">
             </div>
             <div class="editor-header-row editor-header-row--meta">
                 <input type="text" id="post-tags" placeholder="タグ（カンマ区切り）" class="editor-tags-input">
-                <span class="char-count editor-title-count" id="title-count">0 / 120</span>
+                <span class="char-count editor-title-count" id="title-count">0 / 50</span>
             </div>
         </header>
 
@@ -197,8 +197,8 @@
                 </div>
                 <label class="auth-label">表示名</label>
                 <div class="profile-settings-display-name-wrap">
-                    <input type="text" id="profile-settings-display-name" class="auth-input" placeholder="表示名" maxlength="30" autocomplete="off">
-                    <span class="char-count profile-display-name-count" id="profile-display-name-count" aria-live="polite">0 / 30</span>
+                    <input type="text" id="profile-settings-display-name" class="auth-input" placeholder="表示名" maxlength="20" autocomplete="off">
+                    <span class="char-count profile-display-name-count" id="profile-display-name-count" aria-live="polite">0 / 20</span>
                 </div>
                 <p class="profile-settings-error" id="profile-settings-error" hidden></p>
                 <div class="profile-settings-buttons">

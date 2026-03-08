@@ -11,8 +11,8 @@
     const PROFILE_ICON_BG_OPTIONS = [
         '', '#1a73e8', '#34a853', '#ea4335', '#f9ab00', '#8b5cf6', '#ec4899', '#0ea5e9', '#64748b', '#14b8a6'
     ];
-    const TITLE_MAX_LENGTH = 120;
-    const DISPLAY_NAME_MAX_LENGTH = 30;
+    const TITLE_MAX_LENGTH = 50;
+    const DISPLAY_NAME_MAX_LENGTH = 20;
 
     var db = null;
     var auth = null;
@@ -740,7 +740,19 @@
             '</button>' +
             actionsHtml +
             '</div>' +
-            '</article>';
+            '</article>' +
+            '<section class="detail-reply-section" aria-labelledby="detail-reply-heading">' +
+            '<h3 id="detail-reply-heading" class="detail-reply-heading">返信</h3>' +
+            (isLoggedIn()
+                ? '<form class="detail-reply-form" id="detail-reply-form" data-post-id="' + _escape(item.id) + '">' +
+                  '<textarea class="detail-reply-textarea" name="replyBody" placeholder="返信を書く..." rows="3" maxlength="500"></textarea>' +
+                  '<div class="detail-reply-actions">' +
+                  '<span class="detail-reply-count" aria-live="polite">0 / 500</span>' +
+                  '<button type="submit" class="btn primary btn-sm detail-reply-submit">送信</button>' +
+                  '</div>' +
+                  '</form>'
+                : '<p class="detail-reply-login-hint">ログインすると返信できます。</p>') +
+            '</section>';
         modalOverlay.classList.add('is-open');
         modalOverlay.style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -801,6 +813,57 @@
                 renderTagFilter();
                 showToast('削除しました');
             };
+        }
+
+        var replyForm = modalBody.querySelector('#detail-reply-form');
+        if (replyForm) {
+            var replyTextarea = replyForm.querySelector('.detail-reply-textarea');
+            var replyCountEl = replyForm.querySelector('.detail-reply-count');
+            function updateReplyCount() {
+                var len = replyTextarea ? (replyTextarea.value || '').length : 0;
+                if (replyCountEl) replyCountEl.textContent = len + ' / 500';
+            }
+            if (replyTextarea) {
+                replyTextarea.addEventListener('input', updateReplyCount);
+                updateReplyCount();
+            }
+            replyForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (!replyTextarea) return;
+                var body = (replyTextarea.value || '').trim();
+                if (!body) {
+                    showToast('返信内容を入力してください');
+                    return;
+                }
+                submitReply(item.id, body);
+                replyTextarea.value = '';
+                updateReplyCount();
+                showToast('返信を送信しました');
+            });
+        }
+    }
+
+    function submitReply(postId, body) {
+        if (!isLoggedIn() || !auth || !auth.currentUser) return;
+        var uid = auth.currentUser.uid;
+        var displayName = getDisplayName(auth.currentUser);
+        if (db) {
+            db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').add({
+                body: body,
+                authorId: uid,
+                authorDisplayName: displayName,
+                createdAt: new Date().toISOString()
+            }).catch(function (err) { console.warn('Reply save failed', err); });
+        }
+        var post = thoughts.find(function (t) { return t.id === postId; });
+        if (post) {
+            if (!post.replies) post.replies = [];
+            post.replies.push({
+                body: body,
+                authorId: uid,
+                authorDisplayName: displayName,
+                createdAt: new Date().toISOString()
+            });
         }
     }
 
