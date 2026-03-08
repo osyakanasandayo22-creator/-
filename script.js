@@ -112,10 +112,22 @@
             createdAt: t.createdAt || _now(),
             updatedAt: t.updatedAt || t.createdAt || _now(),
             likes: typeof t.likes === 'number' ? t.likes : 0,
+            likedBy: Array.isArray(t.likedBy) ? t.likedBy : [],
             authorId: t.authorId || '',
             authorDisplayName: t.authorDisplayName || '',
             authorIcon: t.authorIcon || '👤'
         };
+    }
+
+    function isLikedByMe(thought) {
+        if (!auth || !auth.currentUser || !thought.likedBy) return false;
+        return thought.likedBy.indexOf(auth.currentUser.uid) >= 0;
+    }
+
+    function getLikeIconSrc(liked) {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) return liked ? 'images/テーマ黒用いいね済み.png' : 'images/黒色いいね通常時.png';
+        return liked ? 'images/テーマ白用いいね済み.png' : 'images/白色いいね通常時.png';
     }
 
     let raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -169,6 +181,7 @@
                     createdAt: d.createdAt,
                     updatedAt: d.updatedAt,
                     likes: d.likes,
+                    likedBy: d.likedBy,
                     authorId: d.authorId,
                     authorDisplayName: d.authorDisplayName,
                     authorIcon: d.authorIcon
@@ -504,6 +517,8 @@
         list.forEach(function (thought, index) {
             const plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
             const likes = typeof thought.likes === 'number' ? thought.likes : 0;
+            const liked = isLikedByMe(thought);
+            const likeImgSrc = getLikeIconSrc(liked);
             const authorName = thought.authorDisplayName || '匿名';
             const authorIcon = thought.authorIcon || '👤';
             const card = document.createElement('div');
@@ -522,7 +537,7 @@
                     : '') +
                 '<span class="date">' + _escape(formatDate(thought.updatedAt || thought.createdAt)) + '</span>' +
                 '<button type="button" class="like-btn" data-id="' + _escape(thought.id) + '" title="高評価">' +
-                '<span class="like-icon" aria-hidden="true">👍</span> <span class="like-count">' + likes + '</span>' +
+                '<img class="like-icon" src="' + _escape(likeImgSrc) + '" alt=""> <span class="like-count">' + likes + '</span>' +
                 '</button>' +
                 '</div>';
             card.onclick = function (e) {
@@ -555,12 +570,16 @@
         }
         const item = thoughts.find(function (t) { return t.id === id; });
         if (!item) return;
-        item.likes = (typeof item.likes === 'number' ? item.likes : 0) + 1;
+        if (!Array.isArray(item.likedBy)) item.likedBy = [];
+        var uid = auth.currentUser.uid;
+        if (item.likedBy.indexOf(uid) < 0) {
+            item.likedBy.push(uid);
+            item.likes = (typeof item.likes === 'number' ? item.likes : 0) + 1;
+        }
         save();
         renderFeed();
         if (modalOverlay.classList.contains('is-open') && currentDetailId === id) {
-            var cnt = modalBody.querySelector('.detail-like-count');
-            if (cnt) cnt.textContent = item.likes;
+            showDetail(id);
         }
         showToast('高評価しました');
     }
@@ -579,6 +598,8 @@
             : '';
         var detailAuthorName = item.authorDisplayName || '匿名';
         var detailAuthorIcon = item.authorIcon || '👤';
+        var detailLiked = isLikedByMe(item);
+        var detailLikeImgSrc = getLikeIconSrc(detailLiked);
         modalBody.innerHTML =
             '<article class="detail-card">' +
             '<div class="detail-author">' +
@@ -595,7 +616,7 @@
             '<div class="detail-content">' + (item.content || '') + '</div>' +
             '<div class="detail-footer">' +
             '<button type="button" class="btn detail-like-btn" data-action="like" data-id="' + _escape(item.id) + '" title="高評価">' +
-            '<span class="like-icon" aria-hidden="true">👍</span><span class="detail-like-count">' + likes + '</span>' +
+            '<img class="like-icon" src="' + _escape(detailLikeImgSrc) + '" alt=""><span class="detail-like-count">' + likes + '</span>' +
             '</button>' +
             actionsHtml +
             '</div>' +
@@ -666,6 +687,8 @@
             myPosts.forEach(function (thought) {
                 var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
                 var likes = typeof thought.likes === 'number' ? thought.likes : 0;
+                var liked = isLikedByMe(thought);
+                var likeImgSrc = getLikeIconSrc(liked);
                 var authorName = thought.authorDisplayName || '匿名';
                 var authorIcon = thought.authorIcon || '👤';
                 var card = document.createElement('div');
@@ -684,7 +707,7 @@
                         : '') +
                     '<span class="date">' + _escape(formatDate(thought.updatedAt || thought.createdAt)) + '</span>' +
                     '<button type="button" class="like-btn" data-id="' + _escape(thought.id) + '" title="高評価">' +
-                    '<span class="like-icon" aria-hidden="true">👍</span> <span class="like-count">' + likes + '</span>' +
+                    '<img class="like-icon" src="' + _escape(likeImgSrc) + '" alt=""> <span class="like-count">' + likes + '</span>' +
                     '</button>' +
                     '</div>';
                 card.onclick = function (e) {
@@ -889,6 +912,7 @@
                     createdAt: _now(),
                     updatedAt: _now(),
                     likes: 0,
+                    likedBy: [],
                     authorId: uid,
                     authorDisplayName: displayName,
                     authorIcon: authorIcon
@@ -922,6 +946,9 @@
         document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
         localStorage.setItem(THEME_KEY, isDark ? 'light' : 'dark');
         showToast(isDark ? 'ライトモード' : 'ダークモード');
+        renderFeed();
+        if (currentDetailId) showDetail(currentDetailId);
+        if (viewProfile && !viewProfile.hidden) renderProfilePage();
     }
 
     function exportData() {
