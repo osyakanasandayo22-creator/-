@@ -966,7 +966,7 @@
                   }).join('') +
                   '</ol></nav>'
                 : '') +
-            '<div class="detail-content">' + (item.toc && item.toc.length ? contentWithTocIds(item.content || '') : (item.content || '')) + '</div>' +
+            '<div class="detail-content">' + (item.toc && item.toc.length ? contentWithTocIds(item.content || '') : stripContentEditable(item.content || '')) + '</div>' +
             '<div class="detail-footer">' +
             '<button type="button" class="btn detail-like-btn" data-action="like" data-id="' + _escape(item.id) + '" title="高評価">' +
             '<img class="like-icon" src="' + _escape(detailLikeImgSrc) + '" alt=""><span class="detail-like-count">' + likes + '</span>' +
@@ -1979,7 +1979,6 @@
         }
         var el = document.createElement(tag);
         el.textContent = defaultText;
-        el.contentEditable = 'true';
         try {
             range.collapse(true);
             range.insertNode(el);
@@ -1992,10 +1991,23 @@
         }
     }
 
+    function stripContentEditable(html) {
+        if (!html) return '';
+        var wrap = document.createElement('div');
+        wrap.innerHTML = html;
+        wrap.querySelectorAll('[contenteditable]').forEach(function (el) {
+            el.removeAttribute('contenteditable');
+        });
+        return wrap.innerHTML;
+    }
+
     function contentWithTocIds(html) {
         if (!html) return '';
         var wrap = document.createElement('div');
         wrap.innerHTML = html;
+        wrap.querySelectorAll('[contenteditable]').forEach(function (el) {
+            el.removeAttribute('contenteditable');
+        });
         var headings = wrap.querySelectorAll('h2, h3');
         headings.forEach(function (h, i) {
             h.id = 'toc-' + i;

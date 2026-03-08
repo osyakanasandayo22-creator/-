@@ -755,7 +755,8 @@ textarea,
     background: var(--border);
 }
 
-.modal-content h2 {
+/* 詳細モーダルのメインタイトルのみ（本文内の見出しには当てない） */
+.detail-card .detail-title {
     font-family: var(--font-serif);
     font-size: 1.4rem;
     margin-bottom: 20px;
