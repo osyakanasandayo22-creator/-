@@ -836,7 +836,7 @@
     function getFilteredThoughts() {
         const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : '';
         const tagVal = (filterTag && filterTag.value) ? filterTag.value : '';
-        const sortOrder = (filterSort && filterSort.value) ? filterSort.value : 'newest';
+        const sortOrder = (filterSort && filterSort.value) ? filterSort.value : 'trending';
         let list = thoughts.slice();
 
         if (tagVal) {
@@ -921,16 +921,15 @@
         var verifiedBadge = ((thought.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
         var masterpieceBadge = isMasterpiece ? '<span class="masterpiece-badge" aria-label="名著">名著</span>' : '';
         var isOwnPost = isLoggedIn() && thought.authorId && auth.currentUser.uid === thought.authorId;
-        var moreMenuHtml = '';
+        var moreMenuItems = '<button type="button" class="post-more-item" role="menuitem" data-action="share" data-id="' + _escape(thought.id) + '">シェア</button>';
         if (isLoggedIn()) {
-            moreMenuHtml = '<div class="post-more-wrap">' +
-                '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
-                '<div class="post-more-dropdown" hidden role="menu">' +
-                (isOwnPost
-                    ? '<button type="button" class="post-more-item danger" role="menuitem" data-action="delete" data-id="' + _escape(thought.id) + '">削除</button>'
-                    : '<button type="button" class="post-more-item" role="menuitem" data-action="report" data-id="' + _escape(thought.id) + '">通報</button>') +
-                '</div></div>';
+            moreMenuItems += (isOwnPost
+                ? '<button type="button" class="post-more-item danger" role="menuitem" data-action="delete" data-id="' + _escape(thought.id) + '">削除</button>'
+                : '<button type="button" class="post-more-item" role="menuitem" data-action="report" data-id="' + _escape(thought.id) + '">通報</button>');
         }
+        var moreMenuHtml = '<div class="post-more-wrap">' +
+            '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
+            '<div class="post-more-dropdown" hidden role="menu">' + moreMenuItems + '</div></div>';
         var card = document.createElement('div');
         card.className = 'card';
         card.dataset.id = thought.id;
@@ -979,6 +978,12 @@
                     btn.onclick = function () {
                         drop.hidden = true;
                         reportPost(thought.id);
+                    };
+                });
+                drop.querySelectorAll('[data-action="share"]').forEach(function (btn) {
+                    btn.onclick = function () {
+                        drop.hidden = true;
+                        sharePost(thought.id);
                     };
                 });
             }
@@ -1125,6 +1130,9 @@
     function closeArticleView() {
         if (viewArticle) viewArticle.hidden = true;
         currentDetailId = null;
+        try {
+            if (window.location.hash) window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        } catch (e) {}
         if (previousViewBeforeArticle === 'profile' && viewProfile) {
             viewProfile.hidden = false;
             viewProfile.style.display = 'flex';
@@ -1143,6 +1151,9 @@
         const item = thoughts.find(function (t) { return t.id === id; });
         if (!item) return;
         currentDetailId = id;
+        try {
+            window.history.replaceState(null, '', getShareUrl(id));
+        } catch (e) {}
         if (viewFeed && !viewFeed.hidden) previousViewBeforeArticle = 'feed';
         if (viewProfile && !viewProfile.hidden) previousViewBeforeArticle = 'profile';
         if (viewFeed) viewFeed.hidden = true;
@@ -1162,11 +1173,16 @@
         var masterpieceBadgeHtml = isMasterpiece ? '<span class="masterpiece-badge" aria-label="名著">名著</span>' : '';
         var isOwnPost = isLoggedIn() && item.authorId && auth.currentUser.uid === item.authorId;
         var detailMoreMenuHtml = '';
+        var detailMenuItems = '<button type="button" class="post-more-item" role="menuitem" data-action="share" data-id="' + _escape(item.id) + '">シェア</button>';
         if (isLoggedIn()) {
-            var detailMenuItems = isOwnPost
+            detailMenuItems += isOwnPost
                 ? '<button type="button" class="post-more-item" role="menuitem" data-action="edit" data-id="' + _escape(item.id) + '">編集</button>' +
                   '<button type="button" class="post-more-item danger" role="menuitem" data-action="delete" data-id="' + _escape(item.id) + '">削除</button>'
                 : '<button type="button" class="post-more-item" role="menuitem" data-action="report" data-id="' + _escape(item.id) + '">通報</button>';
+            detailMoreMenuHtml = '<div class="post-more-wrap">' +
+                '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
+                '<div class="post-more-dropdown" hidden role="menu">' + detailMenuItems + '</div></div>';
+        } else {
             detailMoreMenuHtml = '<div class="post-more-wrap">' +
                 '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
                 '<div class="post-more-dropdown" hidden role="menu">' + detailMenuItems + '</div></div>';
@@ -1326,6 +1342,12 @@
                     btn.onclick = function () {
                         detailDrop.hidden = true;
                         reportPost(item.id);
+                    };
+                });
+                detailDrop.querySelectorAll('[data-action="share"]').forEach(function (btn) {
+                    btn.onclick = function () {
+                        detailDrop.hidden = true;
+                        sharePost(item.id);
                     };
                 });
             }
@@ -1801,16 +1823,15 @@
                 var authorClass = thought.authorId ? ' card-author--clickable' : '';
                 var cardVerifiedBadge = (followersCount > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
                 var isOwnPost = isLoggedIn() && thought.authorId && auth.currentUser.uid === thought.authorId;
-                var moreMenuHtml = '';
+                var moreMenuItemsProfile = '<button type="button" class="post-more-item" role="menuitem" data-action="share" data-id="' + _escape(thought.id) + '">シェア</button>';
                 if (isLoggedIn()) {
-                    moreMenuHtml = '<div class="post-more-wrap">' +
-                        '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
-                        '<div class="post-more-dropdown" hidden role="menu">' +
-                        (isOwnPost
-                            ? '<button type="button" class="post-more-item danger" role="menuitem" data-action="delete" data-id="' + _escape(thought.id) + '">削除</button>'
-                            : '<button type="button" class="post-more-item" role="menuitem" data-action="report" data-id="' + _escape(thought.id) + '">通報</button>') +
-                        '</div></div>';
+                    moreMenuItemsProfile += (isOwnPost
+                        ? '<button type="button" class="post-more-item danger" role="menuitem" data-action="delete" data-id="' + _escape(thought.id) + '">削除</button>'
+                        : '<button type="button" class="post-more-item" role="menuitem" data-action="report" data-id="' + _escape(thought.id) + '">通報</button>');
                 }
+                var moreMenuHtml = '<div class="post-more-wrap">' +
+                    '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
+                    '<div class="post-more-dropdown" hidden role="menu">' + moreMenuItemsProfile + '</div></div>';
                 var card = document.createElement('div');
                 card.className = 'card profile-page-card-item';
                 card.dataset.id = thought.id;
@@ -1859,6 +1880,12 @@
                             btn.onclick = function () {
                                 drop.hidden = true;
                                 reportPost(thought.id);
+                            };
+                        });
+                        drop.querySelectorAll('[data-action="share"]').forEach(function (btn) {
+                            btn.onclick = function () {
+                                drop.hidden = true;
+                                sharePost(thought.id);
                             };
                         });
                     }
@@ -2501,6 +2528,53 @@
         showToast('通報しました。運営で確認します。');
     }
 
+    function getShareUrl(postId) {
+        var base = window.location.origin + window.location.pathname;
+        return base + '#post/' + encodeURIComponent(postId);
+    }
+
+    function sharePost(postId) {
+        var item = thoughts.find(function (t) { return t.id === postId; });
+        var title = (item && (item.title || '').trim()) ? (item.title || '').trim() + ' - PhiloStream' : 'PhiloStream';
+        var plain = item ? (item.content || '').replace(/<[^>]*>?/gm, '').trim().slice(0, 200) : '';
+        var text = plain ? plain + '…' : title;
+        var url = getShareUrl(postId);
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            navigator.share({ title: title, text: text, url: url })
+                .then(function () { showToast('シェアしました'); })
+                .catch(function (err) {
+                    if (err.name !== 'AbortError') copyShareUrlAndToast(url);
+                });
+        } else {
+            copyShareUrlAndToast(url);
+        }
+    }
+
+    function copyShareUrlAndToast(url) {
+        if (typeof navigator.clipboard !== 'undefined' && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function () { showToast('リンクをコピーしました'); }).catch(function () { fallbackCopyAndToast(url); });
+        } else {
+            fallbackCopyAndToast(url);
+        }
+    }
+
+    function fallbackCopyAndToast(url) {
+        try {
+            var ta = document.createElement('textarea');
+            ta.value = url;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('リンクをコピーしました');
+        } catch (e) {
+            showToast('リンクをコピーできませんでした');
+        }
+    }
+
     /** 三点メニューのドロップダウンを外クリックで閉じる */
     function bindMoreMenuCloseOnOutside(wrapEl) {
         if (!wrapEl) return;
@@ -3105,8 +3179,23 @@
             save();
             renderFeed();
             renderTagFilter();
+            var hash = window.location.hash;
+            if (hash && hash.indexOf('#post/') === 0) {
+                var postId = decodeURIComponent(hash.slice(6));
+                if (thoughts.some(function (t) { return t.id === postId; })) {
+                    showDetail(postId);
+                }
+            }
         }).catch(function () {
             renderFeed();
         });
+    } else {
+        var hash = window.location.hash;
+        if (hash && hash.indexOf('#post/') === 0) {
+            var postId = decodeURIComponent(hash.slice(6));
+            if (thoughts.some(function (t) { return t.id === postId; })) {
+                showDetail(postId);
+            }
+        }
     }
 })();
