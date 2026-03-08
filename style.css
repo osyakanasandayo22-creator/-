@@ -1496,6 +1496,13 @@ body {
     z-index: 60;
     background: var(--bg-color);
     flex-direction: column;
+    user-select: none;
+}
+
+/* 投稿フォーム内でタイトル・本文のみ範囲選択可能 */
+.view-editor #post-title,
+.view-editor #post-content {
+    user-select: text;
 }
 
 .editor-page-header {
