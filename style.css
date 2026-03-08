@@ -640,11 +640,37 @@ textarea,
     background: var(--bg-elevated);
 }
 
+.card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
 .card h3 {
-    margin: 0 0 6px 0;
+    margin: 0;
     font-size: 1.0625rem;
     font-weight: 500;
     color: var(--text-main);
+}
+
+/* 名著バッジ（いいね数が閾値以上の投稿に表示） */
+.masterpiece-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #b45309;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 4px;
+    line-height: 1.2;
+}
+
+[data-theme="dark"] .masterpiece-badge {
+    color: #fcd34d;
+    background: linear-gradient(135deg, #78350f, #92400e);
 }
 
 .card .preview {
@@ -873,12 +899,22 @@ textarea,
 }
 
 /* 詳細モーダルのメインタイトルのみ（本文内の見出しには当てない） */
-.detail-card .detail-title {
-    font-family: var(--font-serif);
-    font-size: 1.4rem;
+.detail-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
     margin-bottom: 20px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
+}
+
+.detail-card .detail-title {
+    font-family: var(--font-serif);
+    font-size: 1.4rem;
+    margin: 0;
+    padding: 0;
+    border: none;
 }
 
 /* ========== 詳細モーダル（過去投稿閲覧） ========== */
@@ -958,6 +994,10 @@ textarea,
     font-size: 0.9375rem;
     color: var(--text-sub);
     font-weight: 500;
+}
+
+.detail-title-row .detail-title {
+    padding: 24px 24px 0 24px;
 }
 
 .detail-title {
@@ -1257,13 +1297,17 @@ textarea,
     margin-bottom: 0;
 }
 
+.article-body .detail-title-row {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+
 .article-body .detail-title {
     font-size: 1.75rem;
     font-weight: 600;
     line-height: 1.35;
-    padding: 0 0 16px;
-    margin: 0 0 16px;
-    border-bottom: 1px solid var(--border);
+    padding: 0;
+    margin: 0;
 }
 
 .article-body .detail-meta-line {

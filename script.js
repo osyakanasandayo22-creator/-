@@ -888,12 +888,14 @@
     function createFeedCard(thought) {
         var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
         var likes = typeof thought.likes === 'number' ? thought.likes : 0;
+        var isMasterpiece = likes >= MASTERPIECE_MIN_LIKES;
         var liked = isLikedByMe(thought);
         var likeImgSrc = getLikeIconSrc(liked);
         var authorName = thought.authorDisplayName || '匿名';
         var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
         var authorClass = thought.authorId ? ' card-author--clickable' : '';
         var verifiedBadge = ((thought.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
+        var masterpieceBadge = isMasterpiece ? '<span class="masterpiece-badge" aria-label="名著">名著</span>' : '';
         var card = document.createElement('div');
         card.className = 'card';
         card.dataset.id = thought.id;
@@ -902,7 +904,9 @@
             authorIconHtml +
             '<span class="card-author-name">' + _escape(authorName) + '</span>' + verifiedBadge +
             '</div>' +
-            '<h3>' + _escape(thought.title) + '</h3>' +
+            '<div class="card-title-row">' +
+            '<h3>' + _escape(thought.title) + '</h3>' + masterpieceBadge +
+            '</div>' +
             '<div class="preview">' + _escape(plainText) + '</div>' +
             '<div class="meta">' +
             (thought.tags && thought.tags.length
@@ -1093,6 +1097,8 @@
         document.body.style.overflow = '';
 
         const likes = typeof item.likes === 'number' ? item.likes : 0;
+        var isMasterpiece = likes >= MASTERPIECE_MIN_LIKES;
+        var masterpieceBadgeHtml = isMasterpiece ? '<span class="masterpiece-badge" aria-label="名著">名著</span>' : '';
         var isOwnPost = isLoggedIn() && item.authorId && auth.currentUser.uid === item.authorId;
         var actionsHtml = isOwnPost
             ? '<div class="detail-actions">' +
@@ -1121,7 +1127,9 @@
             '</div>' +
             followBtnHtml +
             '</div>' +
-            '<h2 class="detail-title">' + _escape(item.title) + '</h2>' +
+            '<div class="detail-title-row">' +
+            '<h2 class="detail-title">' + _escape(item.title) + '</h2>' + masterpieceBadgeHtml +
+            '</div>' +
             '<div class="detail-meta-line">' +
             '<time class="detail-date" datetime="' + _escape(item.updatedAt || item.createdAt) + '">' + _escape(formatDate(item.updatedAt || item.createdAt)) + '</time>' +
             (item.tags && item.tags.length
