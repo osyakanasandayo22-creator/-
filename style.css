@@ -1514,6 +1514,9 @@ textarea,
     z-index: 60;
     background: var(--bg-color);
     flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .editor-page-header {
@@ -1957,6 +1960,8 @@ textarea,
     .editor-page-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 16px; }
     .editor-header-row--meta .editor-tags-input { min-width: 0; }
     .editor-main { padding: 0 14px 16px; }
+    .editor-main .editor-body,
+    #post-content.editor-body { min-height: 120px; padding-top: 12px; padding-bottom: 12px; }
     .profile-page-main,
     .settings-page-main { padding-left: 16px; padding-right: 16px; }
 

@@ -1729,6 +1729,31 @@
     document.getElementById('post-title').addEventListener('input', updateCharCounts);
     document.getElementById('post-content').addEventListener('input', updateCharCounts);
 
+    /* スマホ：キーボード表示時に入力欄・ツールバーが見えるようスクロール */
+    function scrollEditorInputIntoView(el, options) {
+        var delay = (options && options.delay) || 350;
+        setTimeout(function () {
+            if (el && el.scrollIntoView) el.scrollIntoView(options || { block: 'center', behavior: 'smooth' });
+        }, delay);
+    }
+    var postTitleEl = document.getElementById('post-title');
+    var postTagsEl = document.getElementById('post-tags');
+    var postContentEl = document.getElementById('post-content');
+    var postToolbarWrap = document.querySelector('.view-editor .editor-toolbar-wrap');
+    if (postTitleEl) {
+        postTitleEl.addEventListener('focus', function () { scrollEditorInputIntoView(postTitleEl); });
+    }
+    if (postTagsEl) {
+        postTagsEl.addEventListener('focus', function () { scrollEditorInputIntoView(postTagsEl); });
+    }
+    if (postContentEl && postToolbarWrap) {
+        postContentEl.addEventListener('focus', function () {
+            setTimeout(function () {
+                postToolbarWrap.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            }, 320);
+        });
+    }
+
     modalOverlay.addEventListener('click', function (e) {
         if (e.target === modalOverlay) closeModal(modalOverlay);
     });
