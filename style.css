@@ -1665,6 +1665,10 @@ textarea,
     letter-spacing: 0.02em;
 }
 
+.profile-posts-search-bar {
+    margin-bottom: 16px;
+}
+
 .profile-posts-list {
     display: flex;
     flex-direction: column;

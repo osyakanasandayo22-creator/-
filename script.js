@@ -1452,6 +1452,37 @@
             postsList = getMyPosts();
         }
 
+        var profileSearchInput = document.getElementById('profile-search-input');
+        var profileSortSelect = document.getElementById('profile-sort');
+        var profileSearchHint = document.getElementById('profile-search-hint');
+        var profileQuery = (profileSearchInput && profileSearchInput.value) ? profileSearchInput.value.trim().toLowerCase() : '';
+        var profileSortOrder = (profileSortSelect && profileSortSelect.value) ? profileSortSelect.value : 'newest';
+        var list = postsList.slice();
+        if (profileQuery) {
+            list = list.filter(function (t) {
+                var plain = (t.content || '').replace(/<[^>]*>?/gm, '');
+                var title = (t.title || '').toLowerCase();
+                var tagsStr = (t.tags || []).join(' ').toLowerCase();
+                return title.includes(profileQuery) || plain.toLowerCase().includes(profileQuery) || tagsStr.includes(profileQuery);
+            });
+        }
+        if (profileSortOrder === 'popular') {
+            list.sort(function (a, b) {
+                var la = typeof a.likes === 'number' ? a.likes : 0;
+                var lb = typeof b.likes === 'number' ? b.likes : 0;
+                if (lb !== la) return lb - la;
+                return (b.updatedAt || '') > (a.updatedAt || '') ? 1 : -1;
+            });
+        } else {
+            var sortKey = profileSortOrder === 'oldest' ? 'createdAt' : 'updatedAt';
+            list.sort(function (a, b) {
+                var ta = a[sortKey] || '';
+                var tb = b[sortKey] || '';
+                if (profileSortOrder === 'oldest') return ta < tb ? -1 : ta > tb ? 1 : 0;
+                return ta > tb ? -1 : ta < tb ? 1 : 0;
+            });
+        }
+
         if (avatarWrap) avatarWrap.outerHTML = getAuthorIconHtml(profile.icon, profile.iconBg, displayName, 'profile-page-avatar');
         nameEl.innerHTML = _escape(displayName) + (followersCount > VERIFIED_FOLLOWERS_THRESHOLD ? getVerifiedBadgeHtml() : '');
         if (bioEl) {
@@ -1462,6 +1493,11 @@
         if (followersEl) followersEl.textContent = String(followersCount);
         if (followingEl) followingEl.textContent = String(isOtherUser ? followingCount : (profile.following && profile.following.length) || 0);
         if (postsCountEl) postsCountEl.textContent = String(postsList ? postsList.length : 0);
+        if (profileSearchHint) {
+            if (profileQuery && list.length === 0) profileSearchHint.textContent = '該当する投稿がありません。';
+            else if (profileQuery) profileSearchHint.textContent = list.length + ' 件';
+            else profileSearchHint.textContent = '';
+        }
 
         if (settingsBtn) {
             settingsBtn.hidden = isOtherUser;
@@ -1484,11 +1520,14 @@
         }
 
         listEl.innerHTML = '';
-        if (postsList.length === 0) {
-            if (emptyEl) { emptyEl.hidden = false; }
+        if (list.length === 0) {
+            if (emptyEl) {
+                emptyEl.hidden = false;
+                emptyEl.textContent = (profileQuery && postsList.length > 0) ? '該当する投稿がありません。' : 'まだ投稿がありません。';
+            }
         } else {
             if (emptyEl) emptyEl.hidden = true;
-            postsList.forEach(function (thought) {
+            list.forEach(function (thought) {
                 var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
                 var likes = typeof thought.likes === 'number' ? thought.likes : 0;
                 var liked = isLikedByMe(thought);
@@ -1614,6 +1653,12 @@
         if (viewFeed) viewFeed.hidden = true;
         if (viewEditor) viewEditor.hidden = true;
         closeFollowDrawer();
+        var profileSearchInputEl = document.getElementById('profile-search-input');
+        var profileSortEl = document.getElementById('profile-sort');
+        if (profileSearchInputEl) profileSearchInputEl.value = '';
+        if (profileSortEl) profileSortEl.value = 'newest';
+        var profileSearchHintEl = document.getElementById('profile-search-hint');
+        if (profileSearchHintEl) profileSearchHintEl.textContent = '';
         if (viewProfile) {
             viewProfile.hidden = false;
             viewProfile.style.display = 'flex';
@@ -2563,6 +2608,15 @@
     });
     var profileBackBtn = document.getElementById('profile-back-btn');
     if (profileBackBtn) profileBackBtn.addEventListener('click', closeProfileView);
+    var profileSortEl = document.getElementById('profile-sort');
+    if (profileSortEl) profileSortEl.addEventListener('change', function () { renderProfilePage(); });
+    var profileSearchInputEl = document.getElementById('profile-search-input');
+    if (profileSearchInputEl) {
+        profileSearchInputEl.addEventListener('input', function () { renderProfilePage(); });
+        profileSearchInputEl.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { profileSearchInputEl.value = ''; renderProfilePage(); }
+        });
+    }
     var profileFollowersTrigger = document.getElementById('profile-followers-trigger');
     if (profileFollowersTrigger) profileFollowersTrigger.addEventListener('click', function () {
         var uids = (currentProfileForDrawer && currentProfileForDrawer.followers) ? currentProfileForDrawer.followers : [];

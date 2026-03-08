@@ -126,6 +126,15 @@
             </div>
             <section class="profile-posts-section" aria-labelledby="profile-posts-title">
                 <h3 id="profile-posts-title" class="profile-posts-title">過去の投稿</h3>
+                <div class="search-bar profile-posts-search-bar">
+                    <input type="search" id="profile-search-input" placeholder="この人の投稿を検索（タイトル・本文・タグ）" autocomplete="off" aria-label="投稿を検索">
+                    <select id="profile-sort" title="並び順" aria-label="並び順">
+                        <option value="newest">最新順</option>
+                        <option value="oldest">古い順</option>
+                        <option value="popular">人気順</option>
+                    </select>
+                    <span class="search-hint" id="profile-search-hint" aria-live="polite"></span>
+                </div>
                 <div class="profile-posts-list" id="profile-posts-list" role="list">
                     <!-- 投稿カードは script で挿入 -->
                 </div>
