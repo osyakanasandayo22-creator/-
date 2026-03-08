@@ -259,7 +259,7 @@
         myFollowingSet.add(targetUid);
         var batch = db.batch();
         var myRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(myUid);
-        batch.update(myRef, { following: firebase.firestore.FieldValue.arrayUnion(targetUid) });
+        batch.set(myRef, { following: firebase.firestore.FieldValue.arrayUnion(targetUid) }, { merge: true });
         var targetRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(targetUid);
         batch.set(targetRef, { followersCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
         return batch.commit();
@@ -271,7 +271,7 @@
         myFollowingSet.delete(targetUid);
         var batch = db.batch();
         var myRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(myUid);
-        batch.update(myRef, { following: firebase.firestore.FieldValue.arrayRemove(targetUid) });
+        batch.set(myRef, { following: firebase.firestore.FieldValue.arrayRemove(targetUid) }, { merge: true });
         var targetRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(targetUid);
         batch.set(targetRef, { followersCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true });
         return batch.commit();
