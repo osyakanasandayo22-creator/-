@@ -1415,6 +1415,7 @@
         }
         if (viewFeed) viewFeed.hidden = true;
         if (viewEditor) viewEditor.hidden = true;
+        closeFollowDrawer();
         if (viewProfile) {
             viewProfile.hidden = false;
             viewProfile.style.display = 'flex';

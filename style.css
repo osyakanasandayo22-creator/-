@@ -1148,6 +1148,10 @@ textarea,
 }
 
 /* フォロワー/フォロー一覧ドロワー */
+.follow-drawer-overlay[hidden],
+.follow-drawer[hidden] {
+    display: none !important;
+}
 .follow-drawer-overlay {
     position: fixed;
     inset: 0;
