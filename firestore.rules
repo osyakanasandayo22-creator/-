@@ -8,10 +8,13 @@ service cloud.firestore {
       allow create, update, delete: if request.auth != null;
 
       // 返信（投稿へのコメント）
+      // 更新: 投稿者本人は編集・削除可 / ログイン済みならいいね用の likes, likedBy のみ更新可
       match /replies/{replyId} {
         allow read: if true;
         allow create: if request.auth != null;
-        allow update: if request.auth != null && resource.data.authorId == request.auth.uid;
+        allow update: if request.auth != null &&
+          (resource.data.authorId == request.auth.uid ||
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy']));
         allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
       }
     }
