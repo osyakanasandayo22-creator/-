@@ -601,6 +601,28 @@
             .slice(0, limit || 6);
     }
 
+    /** 急上昇タグを取得（直近7日以内の投稿に付いたタグを件数順、最大 limit 件） */
+    function getTrendingTags(limit) {
+        var now = Date.now();
+        var sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+        var countByTag = {};
+        thoughts.forEach(function (t) {
+            var updated = t.updatedAt || t.createdAt || '';
+            var ts = typeof updated === 'number' ? updated : (new Date(updated)).getTime();
+            if (isNaN(ts) || now - ts > sevenDaysMs) return;
+            (t.tags || []).forEach(function (tag) {
+                var key = tag && tag.trim();
+                if (key) {
+                    countByTag[key] = (countByTag[key] || 0) + 1;
+                }
+            });
+        });
+        return Object.keys(countByTag)
+            .map(function (tag) { return { tag: tag, count: countByTag[tag] }; })
+            .sort(function (a, b) { return b.count - a.count; })
+            .slice(0, limit || 15);
+    }
+
     /** 指定タグの投稿をいいね数順で最大 limit 件取得 */
     function getPopularPostsForTag(tag, limit) {
         return thoughts
@@ -704,6 +726,34 @@
         });
     }
 
+    /** PC用：左サイドバーに急上昇タグ・人気タグを縦並びで描画 */
+    function renderFeedSidebar() {
+        var trendingList = document.getElementById('trending-tags-list');
+        var popularList = document.getElementById('popular-tags-list');
+        if (!trendingList || !popularList || !filterTag) return;
+        var trending = getTrendingTags(20);
+        var popular = getPopularTags(20);
+        function makeTagItem(item) {
+            var li = document.createElement('li');
+            li.className = 'feed-sidebar-tag-item';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'feed-sidebar-tag-btn';
+            btn.title = item.tag + ' (' + item.count + '件)でフィルター';
+            btn.innerHTML = '<span class="feed-sidebar-tag-name">' + _escape(item.tag) + '</span> <span class="feed-sidebar-tag-count">' + item.count + '件</span>';
+            btn.addEventListener('click', function () {
+                filterTag.value = item.tag;
+                renderFeed();
+            });
+            li.appendChild(btn);
+            return li;
+        }
+        trendingList.innerHTML = '';
+        trending.forEach(function (item) { trendingList.appendChild(makeTagItem(item)); });
+        popularList.innerHTML = '';
+        popular.forEach(function (item) { popularList.appendChild(makeTagItem(item)); });
+    }
+
     function getFilteredThoughts() {
         const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : '';
         const tagVal = (filterTag && filterTag.value) ? filterTag.value : '';
@@ -757,6 +807,7 @@
 
     function renderFeed() {
         renderPopularTagsSection();
+        renderFeedSidebar();
         var list = getFilteredThoughts();
         var timeline = feedTimeline || feed;
         var cards = timeline.querySelectorAll('.card');

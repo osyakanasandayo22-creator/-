@@ -60,6 +60,15 @@
         </header>
 
         <main id="feed" class="feed" role="feed">
+            <aside class="feed-sidebar" id="feed-sidebar" aria-label="タグ一覧">
+                <div class="feed-sidebar-inner">
+                    <h2 class="feed-sidebar-heading">急上昇タグ</h2>
+                    <ul class="feed-sidebar-tag-list" id="trending-tags-list" aria-label="急上昇タグ"></ul>
+                    <h2 class="feed-sidebar-heading">人気のタグ</h2>
+                    <ul class="feed-sidebar-tag-list" id="popular-tags-list" aria-label="人気のタグ"></ul>
+                </div>
+            </aside>
+            <div class="feed-body">
             <section class="popular-tags-section" id="popular-tags-section" aria-label="人気のタグ" hidden>
                 <!-- 人気タグ＋各タグの人気投稿（最大3件）を script で挿入 -->
             </section>
@@ -69,6 +78,7 @@
                     <p>まだ哲学は一つも刻まれていません。</p>
                     <p>右下の <strong>+</strong> から、最初の一節を書き留めてください。</p>
                 </div>
+            </div>
             </div>
         </main>
 
