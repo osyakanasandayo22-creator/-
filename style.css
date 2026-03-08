@@ -551,7 +551,8 @@ body {
     line-height: 1;
 }
 
-.profile-email {
+.profile-email,
+.profile-display-name {
     max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;

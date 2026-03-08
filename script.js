@@ -43,10 +43,17 @@
         }
     }
 
+    function getDisplayName(user) {
+        if (!user) return 'ログイン中';
+        var name = (user.displayName || '').trim();
+        if (name) return name;
+        return user.email || 'ログイン中';
+    }
+
     function updateAuthUI() {
         var loginBtn = document.getElementById('login-btn');
         var authUser = document.getElementById('auth-user');
-        var authEmail = document.getElementById('auth-email');
+        var displayNameEl = document.getElementById('profile-display-name');
         var postTrigger = document.getElementById('post-trigger');
         var profileDropdown = document.getElementById('profile-dropdown');
         if (!loginBtn || !authUser) return;
@@ -56,7 +63,7 @@
         if (isLoggedIn()) {
             loginBtn.hidden = true;
             authUser.hidden = false;
-            if (authEmail && auth.currentUser) authEmail.textContent = auth.currentUser.email || 'ログイン中';
+            if (displayNameEl && auth.currentUser) displayNameEl.textContent = getDisplayName(auth.currentUser);
             if (postTrigger) postTrigger.style.visibility = '';
         } else {
             loginBtn.hidden = false;
@@ -859,6 +866,21 @@
     if (profileTrigger) profileTrigger.addEventListener('click', function (e) {
         e.stopPropagation();
         toggleProfileDropdown();
+    });
+    var profileNicknameBtn = document.getElementById('profile-nickname-btn');
+    if (profileNicknameBtn) profileNicknameBtn.addEventListener('click', function () {
+        if (!auth || !auth.currentUser) return;
+        var current = getDisplayName(auth.currentUser);
+        var value = window.prompt('ニックネームを入力してください', current === auth.currentUser.email || current === 'ログイン中' ? '' : current);
+        if (value === null) return;
+        value = (value || '').trim();
+        auth.currentUser.updateProfile({ displayName: value || '' }).then(function () {
+            updateAuthUI();
+            closeProfileDropdown();
+            showToast(value ? 'ニックネームを更新しました' : 'ニックネームを解除しました');
+        }).catch(function (err) {
+            showToast(err.message || '更新に失敗しました');
+        });
     });
     var profileLogout = document.getElementById('profile-logout');
     if (profileLogout) profileLogout.addEventListener('click', function () {
