@@ -280,7 +280,6 @@
     function followUser(targetUid) {
         if (!db || !auth || !auth.currentUser || !targetUid || targetUid === auth.currentUser.uid) return Promise.reject(new Error('invalid'));
         var myUid = auth.currentUser.uid;
-        myFollowingSet.add(targetUid);
         var batch = db.batch();
         var myRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(myUid);
         batch.set(myRef, { following: firebase.firestore.FieldValue.arrayUnion(targetUid) }, { merge: true });
@@ -289,13 +288,14 @@
             followersCount: firebase.firestore.FieldValue.increment(1),
             followers: firebase.firestore.FieldValue.arrayUnion(myUid)
         }, { merge: true });
-        return batch.commit();
+        return batch.commit().then(function () {
+            myFollowingSet.add(targetUid);
+        });
     }
 
     function unfollowUser(targetUid) {
         if (!db || !auth || !auth.currentUser || !targetUid) return Promise.reject(new Error('invalid'));
         var myUid = auth.currentUser.uid;
-        myFollowingSet.delete(targetUid);
         var batch = db.batch();
         var myRef = db.collection(FIRESTORE_USERS_COLLECTION).doc(myUid);
         batch.set(myRef, { following: firebase.firestore.FieldValue.arrayRemove(targetUid) }, { merge: true });
@@ -304,7 +304,9 @@
             followersCount: firebase.firestore.FieldValue.increment(-1),
             followers: firebase.firestore.FieldValue.arrayRemove(myUid)
         }, { merge: true });
-        return batch.commit();
+        return batch.commit().then(function () {
+            myFollowingSet.delete(targetUid);
+        });
     }
 
     function getAuthorIconHtml(icon, iconBg, displayName, iconClass) {
@@ -956,13 +958,19 @@
                         followBtn.textContent = 'フォロー';
                         followBtn.title = 'フォロー';
                         showToast('フォローを解除しました');
-                    }).catch(function () { showToast('フォロー解除に失敗しました'); });
+                    }).catch(function (err) {
+                        console.error('フォロー解除に失敗:', err);
+                        showToast('フォロー解除に失敗しました');
+                    });
                 } else {
                     followUser(targetUid).then(function () {
                         followBtn.textContent = 'フォローを解除';
                         followBtn.title = 'フォローを解除';
                         showToast('フォローしました');
-                    }).catch(function () { showToast('フォローに失敗しました'); });
+                    }).catch(function (err) {
+                        console.error('フォローに失敗:', err);
+                        showToast('フォローに失敗しました');
+                    });
                 }
             };
         }
@@ -1400,7 +1408,10 @@
                                 var fc = document.getElementById('profile-followers-count');
                                 if (fc) fc.textContent = String(Math.max(0, parseInt(fc.textContent, 10) - 1));
                                 showToast('フォローを解除しました');
-                            }).catch(function () { showToast('フォロー解除に失敗しました'); });
+                            }).catch(function (err) {
+                                console.error('フォロー解除に失敗:', err);
+                                showToast('フォロー解除に失敗しました');
+                            });
                         } else {
                             followUser(targetUid).then(function () {
                                 followBtn.textContent = 'フォローを解除';
@@ -1408,7 +1419,10 @@
                                 var fc = document.getElementById('profile-followers-count');
                                 if (fc) fc.textContent = String(parseInt(fc.textContent, 10) + 1);
                                 showToast('フォローしました');
-                            }).catch(function () { showToast('フォローに失敗しました'); });
+                            }).catch(function (err) {
+                                console.error('フォローに失敗:', err);
+                                showToast('フォローに失敗しました');
+                            });
                         }
                     };
                 }
@@ -2233,33 +2247,12 @@
         scrollCloseTimeout = setTimeout(onScrollCloseProfile, 50);
     }, { passive: true });
 
-    /* スマホ：スクロール量に連動してヘッダーを同じペースで上にずらす（スクロールと同速度） */
+    /* ヘッダーは常に表示（sticky のままスクロール時も画面上部に固定） */
     var siteHeader = document.querySelector('.site-header');
-    var lastScrollY = 0;
-    var scrollThresh = 8;
     if (siteHeader) {
-        window.addEventListener('scroll', function () {
-            var y = window.scrollY || window.pageYOffset;
-            var isMobile = window.matchMedia('(max-width: 768px)').matches;
-            if (isMobile) {
-                var headerHeight = siteHeader.offsetHeight;
-                var translate = Math.min(y, headerHeight);
-                siteHeader.style.transition = 'none';
-                siteHeader.style.transform = 'translateY(-' + translate + 'px)';
-                siteHeader.classList.remove('site-header--hidden');
-            } else {
-                siteHeader.style.transition = '';
-                siteHeader.style.transform = '';
-                if (y <= scrollThresh) {
-                    siteHeader.classList.remove('site-header--hidden');
-                } else if (y > lastScrollY) {
-                    siteHeader.classList.add('site-header--hidden');
-                } else {
-                    siteHeader.classList.remove('site-header--hidden');
-                }
-            }
-            lastScrollY = y;
-        }, { passive: true });
+        siteHeader.style.transition = '';
+        siteHeader.style.transform = '';
+        siteHeader.classList.remove('site-header--hidden');
     }
 
     var authClose = document.getElementById('auth-close');
