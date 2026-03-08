@@ -1087,9 +1087,18 @@
             .sort(function (a, b) { return (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || ''); });
     }
 
+    var lastRenderedProfile = null;
+    var lastRenderedProfileOpts = null;
+
     function renderProfilePage(profile, opts) {
         opts = opts || {};
-        profile = profile || { icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 };
+        if (!profile) {
+            profile = lastRenderedProfile || { icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 };
+            opts = lastRenderedProfileOpts || {};
+        } else {
+            lastRenderedProfile = profile;
+            lastRenderedProfileOpts = opts;
+        }
         var avatarWrap = document.getElementById('profile-page-avatar');
         var nameEl = document.getElementById('profile-page-name');
         var followersEl = document.getElementById('profile-followers-count');
@@ -1215,11 +1224,14 @@
             viewingProfileUserId = null;
             if (!myUid) return;
             loadUserProfile(myUid).then(function (profile) {
+                if (viewingProfileUserId !== null) return;
                 renderProfilePage(profile);
             });
         } else {
             viewingProfileUserId = uid;
+            var requestedUid = uid;
             loadUserProfile(uid).then(function (profile) {
+                if (viewingProfileUserId !== requestedUid) return;
                 var displayName = profile.displayName || '';
                 if (!displayName) {
                     var firstPost = getPostsByAuthor(uid)[0];
@@ -1442,7 +1454,7 @@
             closeProfileSettingsModal();
             updateAuthUI();
             loadUserProfile(uid).then(function (profile) {
-                renderProfilePage(profile);
+                if (viewingProfileUserId === null) renderProfilePage(profile);
                 updateHeaderAvatar(profile);
             });
             renderFeed();
