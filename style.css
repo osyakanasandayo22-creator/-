@@ -13,6 +13,10 @@
     --overlay-bg: rgba(255,255,255,0.98);
     --font-sans: 'Noto Sans JP', sans-serif;
     --font-serif: 'Noto Serif JP', serif;
+    --font-mplus1p: 'M PLUS 1p', sans-serif;
+    --font-shippori: 'Shippori Mincho', serif;
+    --font-zenkaku: 'Zen Kaku Gothic New', sans-serif;
+    --font-kosugi: 'Kosugi Maru', sans-serif;
 }
 
 [data-theme="dark"] {
@@ -1620,6 +1624,10 @@ body {
 .fmt-size-xlarge { font-size: 1.5em; }
 .fmt-font-sans { font-family: var(--font-sans); }
 .fmt-font-serif { font-family: var(--font-serif); }
+.fmt-font-mplus1p { font-family: var(--font-mplus1p); }
+.fmt-font-shippori { font-family: var(--font-shippori); }
+.fmt-font-zenkaku { font-family: var(--font-zenkaku); }
+.fmt-font-kosugi { font-family: var(--font-kosugi); }
 
 .modal-footer {
     display: flex;
@@ -1750,7 +1758,7 @@ body {
     transform: translateX(-50%) translateY(0);
 }
 
-/* ========== レスポンシブ ========== */
+/* ========== レスポンシブ（スマホ対応） ========== */
 @media (max-width: 480px) {
     .site-header { padding: 12px 14px; }
     .feed { padding: 0 14px 80px; }
@@ -1759,4 +1767,25 @@ body {
     .editor-page-header { padding: 12px 16px 16px; }
     .editor-header-row--meta .editor-tags-input { min-width: 0; }
     .editor-main { padding: 0 14px 16px; }
+
+    /* 削除確認ダイアログ：余白とタッチしやすいボタン */
+    .confirm-overlay { padding: 16px; }
+    .confirm-dialog { padding: 20px; max-width: none; }
+    .confirm-dialog-actions {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .confirm-dialog-actions .btn {
+        min-height: 44px;
+        min-width: 120px;
+        padding: 10px 20px;
+    }
+
+    /* ツールバー・フォント選択：タップしやすい高さ */
+    .editor-toolbar-wrap .toolbar { padding: 12px 14px; gap: 6px; }
+    .tool-select {
+        min-height: 44px;
+        min-width: 0;
+        font-size: 1rem; /* iOSでズーム防止 */
+    }
 }

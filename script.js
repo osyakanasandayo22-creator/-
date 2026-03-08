@@ -301,7 +301,14 @@
     var editorState = { size: 'normal', font: 'sans', color: null };
 
     var SIZE_MAP = { small: '0.875rem', normal: '1rem', large: '1.25rem', xlarge: '1.5rem' };
-    var FONT_MAP = { sans: 'Noto Sans JP, sans-serif', serif: 'Noto Serif JP, serif' };
+    var FONT_MAP = {
+        sans: 'Noto Sans JP, sans-serif',
+        serif: 'Noto Serif JP, serif',
+        mplus1p: '"M PLUS 1p", sans-serif',
+        shippori: '"Shippori Mincho", serif',
+        zenkaku: '"Zen Kaku Gothic New", sans-serif',
+        kosugi: '"Kosugi Maru", sans-serif'
+    };
 
     function getEditorSelection() {
         var el = document.getElementById('post-content');
