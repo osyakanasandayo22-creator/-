@@ -3,13 +3,27 @@
 
     const STORAGE_KEY = 'philo_posts';
     const THEME_KEY = 'philo_theme';
+    const FIRESTORE_COLLECTION = 'posts';
 
-    let raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    let thoughts = Array.isArray(raw) && raw.length > 0 ? raw : [
-        { id: _uid(), title: "変化の唯一性", content: "この世で唯一変化しないものは、<b>変化し続ける</b>ということだけである。", tags: ["変化", "存在"], createdAt: _now(), updatedAt: _now() },
-        { id: _uid(), title: "美しさと主観", content: "美しさは物自体にあるのではなく、<font size='5'>それを見る人の心</font>の中にある。", tags: ["美", "主観"], createdAt: _now(), updatedAt: _now() }
-    ];
-    thoughts = thoughts.map(function (t) {
+    var db = null;
+    if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined' &&
+        firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('ここに') === -1) {
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch (e) {
+            db = null;
+        }
+    }
+
+    function _uid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+    function _now() {
+        return new Date().toISOString();
+    }
+
+    function normalizeThought(t) {
         return {
             id: t.id || _uid(),
             title: t.title || '',
@@ -19,15 +33,15 @@
             updatedAt: t.updatedAt || t.createdAt || _now(),
             likes: typeof t.likes === 'number' ? t.likes : 0
         };
-    });
-    save();
+    }
 
-    function _uid() {
-        return Date.now().toString(36) + Math.random().toString(36).slice(2);
-    }
-    function _now() {
-        return new Date().toISOString();
-    }
+    let raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    let thoughts = Array.isArray(raw) && raw.length > 0 ? raw : [
+        { id: _uid(), title: "変化の唯一性", content: "この世で唯一変化しないものは、<b>変化し続ける</b>ということだけである。", tags: ["変化", "存在"], createdAt: _now(), updatedAt: _now() },
+        { id: _uid(), title: "美しさと主観", content: "美しさは物自体にあるのではなく、<font size='5'>それを見る人の心</font>の中にある。", tags: ["美", "主観"], createdAt: _now(), updatedAt: _now() }
+    ];
+    thoughts = thoughts.map(normalizeThought);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
 
     const feed = document.getElementById('feed');
     const emptyState = document.getElementById('empty-state');
@@ -47,6 +61,34 @@
 
     function save() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
+        if (db) {
+            var col = db.collection(FIRESTORE_COLLECTION);
+            thoughts.forEach(function (t) {
+                col.doc(t.id).set(t).catch(function (err) {
+                    console.warn('Firestore save failed:', err);
+                });
+            });
+        }
+    }
+
+    function loadFromFirestore() {
+        if (!db) return Promise.resolve([]);
+        return db.collection(FIRESTORE_COLLECTION).get().then(function (snap) {
+            var list = [];
+            snap.forEach(function (doc) {
+                var d = doc.data();
+                list.push(normalizeThought({
+                    id: doc.id,
+                    title: d.title,
+                    content: d.content,
+                    tags: d.tags,
+                    createdAt: d.createdAt,
+                    updatedAt: d.updatedAt,
+                    likes: d.likes
+                }));
+            });
+            return list;
+        });
     }
 
     var editorState = { size: 'normal', font: 'sans', color: null };
@@ -505,6 +547,11 @@
 
     function deletePost(id) {
         thoughts = thoughts.filter(function (t) { return t.id !== id; });
+        if (db) {
+            db.collection(FIRESTORE_COLLECTION).doc(id).delete().catch(function (err) {
+                console.warn('Firestore delete failed:', err);
+            });
+        }
         save();
     }
 
@@ -656,4 +703,17 @@
     initRichEditor();
     renderTagFilter();
     renderFeed();
+
+    if (db) {
+        loadFromFirestore().then(function (data) {
+            if (data && data.length > 0) {
+                thoughts = data;
+            }
+            save();
+            renderFeed();
+            renderTagFilter();
+        }).catch(function () {
+            renderFeed();
+        });
+    }
 })();
