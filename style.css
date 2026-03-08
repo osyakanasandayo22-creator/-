@@ -614,6 +614,106 @@ body {
     border-radius: 8px 8px 0 0;
 }
 
+/* ========== プロフィールページ ========== */
+.view-profile {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--bg-color);
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.profile-page-header {
+    flex-shrink: 0;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+}
+
+.profile-page-main {
+    flex: 1;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+    width: 100%;
+}
+
+.profile-page-card {
+    text-align: center;
+    padding: 32px 20px 24px;
+    margin-bottom: 24px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.profile-page-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    line-height: 1;
+    background: var(--bg-elevated);
+    border-radius: 50%;
+    border: 2px solid var(--border);
+}
+
+.profile-page-name {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 0 0 16px;
+    color: var(--text-main);
+}
+
+.profile-page-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    font-size: 0.9375rem;
+    color: var(--text-sub);
+}
+
+.profile-stat strong {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.profile-posts-section {
+    margin-top: 8px;
+}
+
+.profile-posts-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-main);
+}
+
+.profile-posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.profile-posts-list .card {
+    cursor: pointer;
+}
+
+.profile-posts-empty {
+    text-align: center;
+    color: var(--text-sub);
+    font-size: 0.9375rem;
+    padding: 32px 20px;
+    margin: 0;
+}
+
 .auth-email {
     font-size: 0.875rem;
     color: var(--text-sub);

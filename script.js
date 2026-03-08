@@ -109,7 +109,9 @@
             tags: Array.isArray(t.tags) ? t.tags : [],
             createdAt: t.createdAt || _now(),
             updatedAt: t.updatedAt || t.createdAt || _now(),
-            likes: typeof t.likes === 'number' ? t.likes : 0
+            likes: typeof t.likes === 'number' ? t.likes : 0,
+            authorId: t.authorId || '',
+            authorDisplayName: t.authorDisplayName || ''
         };
     }
 
@@ -127,6 +129,7 @@
     const modalBody = document.getElementById('modal-body');
     const viewFeed = document.getElementById('view-feed');
     const viewEditor = document.getElementById('view-editor');
+    const viewProfile = document.getElementById('view-profile');
     const filterSort = document.getElementById('filter-sort');
     const searchInput = document.getElementById('search-input');
     const filterTag = document.getElementById('filter-tag');
@@ -162,7 +165,9 @@
                     tags: d.tags,
                     createdAt: d.createdAt,
                     updatedAt: d.updatedAt,
-                    likes: d.likes
+                    likes: d.likes,
+                    authorId: d.authorId,
+                    authorDisplayName: d.authorDisplayName
                 }));
             });
             return list;
@@ -599,6 +604,89 @@
         document.body.style.overflow = '';
     }
 
+    function getMyPosts() {
+        if (!auth || !auth.currentUser) return [];
+        var uid = auth.currentUser.uid;
+        return thoughts.filter(function (t) { return t.authorId === uid; })
+            .sort(function (a, b) { return (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || ''); });
+    }
+
+    function renderProfilePage() {
+        var avatarEl = document.getElementById('profile-page-avatar');
+        var nameEl = document.getElementById('profile-page-name');
+        var followersEl = document.getElementById('profile-followers-count');
+        var followingEl = document.getElementById('profile-following-count');
+        var listEl = document.getElementById('profile-posts-list');
+        var emptyEl = document.getElementById('profile-posts-empty');
+        if (!nameEl || !listEl) return;
+        var user = auth && auth.currentUser ? auth.currentUser : null;
+        var displayName = user ? getDisplayName(user) : 'ログイン中';
+        if (avatarEl) avatarEl.textContent = '👤';
+        nameEl.textContent = displayName;
+        if (followersEl) followersEl.textContent = '0';
+        if (followingEl) followingEl.textContent = '0';
+        var myPosts = getMyPosts();
+        listEl.innerHTML = '';
+        if (myPosts.length === 0) {
+            if (emptyEl) { emptyEl.hidden = false; }
+        } else {
+            if (emptyEl) emptyEl.hidden = true;
+            myPosts.forEach(function (thought) {
+                var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
+                var likes = typeof thought.likes === 'number' ? thought.likes : 0;
+                var card = document.createElement('div');
+                card.className = 'card profile-page-card-item';
+                card.dataset.id = thought.id;
+                card.innerHTML =
+                    '<h3>' + _escape(thought.title) + '</h3>' +
+                    '<div class="preview">' + _escape(plainText) + '</div>' +
+                    '<div class="meta">' +
+                    (thought.tags && thought.tags.length
+                        ? thought.tags.map(function (t) { return '<span class="tag">' + _escape(t) + '</span>'; }).join('')
+                        : '') +
+                    '<span class="date">' + _escape(formatDate(thought.updatedAt || thought.createdAt)) + '</span>' +
+                    '<button type="button" class="like-btn" data-id="' + _escape(thought.id) + '" title="高評価">' +
+                    '<span class="like-icon" aria-hidden="true">👍</span> <span class="like-count">' + likes + '</span>' +
+                    '</button>' +
+                    '</div>';
+                card.onclick = function (e) {
+                    if (e.target.closest('.like-btn')) return;
+                    showDetail(thought.id);
+                };
+                var likeBtn = card.querySelector('.like-btn');
+                if (likeBtn) {
+                    likeBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        incrementLike(thought.id);
+                    });
+                }
+                listEl.appendChild(card);
+            });
+        }
+    }
+
+    function openProfileView() {
+        if (!isLoggedIn()) return;
+        renderProfilePage();
+        if (viewFeed) viewFeed.hidden = true;
+        if (viewEditor) viewEditor.hidden = true;
+        if (viewProfile) {
+            viewProfile.hidden = false;
+            viewProfile.style.display = 'flex';
+        }
+        document.body.style.overflow = '';
+    }
+
+    function closeProfileView() {
+        if (viewProfile) {
+            viewProfile.hidden = true;
+            viewProfile.style.display = 'none';
+        }
+        if (viewFeed) viewFeed.hidden = false;
+        document.body.style.overflow = '';
+    }
+
     function openPostModal(editId) {
         if (!isLoggedIn()) {
             showToast('ログインすると投稿・編集できます');
@@ -668,6 +756,8 @@
             return;
         }
 
+        var uid = auth && auth.currentUser ? auth.currentUser.uid : '';
+        var displayName = auth && auth.currentUser ? getDisplayName(auth.currentUser) : '';
         if (editingId) {
             var item = thoughts.find(function (t) { return t.id === editingId; });
             if (item) {
@@ -675,6 +765,7 @@
                 item.content = content;
                 item.tags = tags;
                 item.updatedAt = _now();
+                if (uid) { item.authorId = uid; item.authorDisplayName = displayName; }
             }
             showToast('更新しました');
         } else {
@@ -685,7 +776,9 @@
                 tags: tags,
                 createdAt: _now(),
                 updatedAt: _now(),
-                likes: 0
+                likes: 0,
+                authorId: uid,
+                authorDisplayName: displayName
             });
             showToast('投稿しました');
         }
@@ -798,6 +891,8 @@
             var authOverlay = document.getElementById('auth-overlay');
             if (authOverlay && !authOverlay.hidden) {
                 closeLoginModal();
+            } else if (viewProfile && !viewProfile.hidden) {
+                closeProfileView();
             } else if (viewEditor && !viewEditor.hidden) {
                 closeEditorView();
                 editingId = null;
@@ -873,6 +968,13 @@
         e.stopPropagation();
         toggleProfileDropdown();
     });
+    var profilePageBtn = document.getElementById('profile-page-btn');
+    if (profilePageBtn) profilePageBtn.addEventListener('click', function () {
+        closeProfileDropdown();
+        openProfileView();
+    });
+    var profileBackBtn = document.getElementById('profile-back-btn');
+    if (profileBackBtn) profileBackBtn.addEventListener('click', closeProfileView);
     var profileNicknameBtn = document.getElementById('profile-nickname-btn');
     if (profileNicknameBtn) profileNicknameBtn.addEventListener('click', function () {
         if (!auth || !auth.currentUser) return;

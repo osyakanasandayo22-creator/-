@@ -26,6 +26,7 @@
                                 <span class="profile-chevron" aria-hidden="true">▼</span>
                             </button>
                             <div class="profile-dropdown" id="profile-dropdown" role="menu" hidden>
+                                <button type="button" class="profile-dropdown-item" id="profile-page-btn" role="menuitem">プロフィール</button>
                                 <button type="button" class="profile-dropdown-item" id="profile-nickname-btn" role="menuitem">ニックネームを設定</button>
                                 <button type="button" class="profile-dropdown-item" id="profile-logout" role="menuitem">ログアウト</button>
                             </div>
@@ -60,6 +61,30 @@
         </main>
 
         <button type="button" class="fab" id="post-trigger" aria-label="新規投稿">+</button>
+    </div>
+
+    <!-- ========== プロフィールビュー ========== -->
+    <div class="view view-profile" id="view-profile" hidden>
+        <header class="profile-page-header">
+            <button type="button" class="editor-back-btn" id="profile-back-btn" aria-label="一覧に戻る">← 戻る</button>
+        </header>
+        <main class="profile-page-main">
+            <div class="profile-page-card">
+                <div class="profile-page-avatar" id="profile-page-avatar" aria-hidden="true">👤</div>
+                <h2 class="profile-page-name" id="profile-page-name"></h2>
+                <div class="profile-page-stats">
+                    <span class="profile-stat"><strong id="profile-followers-count">0</strong> フォロワー</span>
+                    <span class="profile-stat"><strong id="profile-following-count">0</strong> フォロー</span>
+                </div>
+            </div>
+            <section class="profile-posts-section" aria-labelledby="profile-posts-title">
+                <h3 id="profile-posts-title" class="profile-posts-title">過去の投稿</h3>
+                <div class="profile-posts-list" id="profile-posts-list" role="list">
+                    <!-- 投稿カードは script で挿入 -->
+                </div>
+                <p class="profile-posts-empty" id="profile-posts-empty" hidden>まだ投稿がありません。</p>
+            </section>
+        </main>
     </div>
 
     <!-- ========== 編集ビュー（フルスクリーン） ========== -->
