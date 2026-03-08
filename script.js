@@ -2233,19 +2233,30 @@
         scrollCloseTimeout = setTimeout(onScrollCloseProfile, 50);
     }, { passive: true });
 
-    /* スマホ：下スクロールでヘッダーを隠し、上スクロールまたは最上部で表示 */
+    /* スマホ：スクロール量に連動してヘッダーを同じペースで上にずらす（スクロールと同速度） */
     var siteHeader = document.querySelector('.site-header');
     var lastScrollY = 0;
     var scrollThresh = 8;
     if (siteHeader) {
         window.addEventListener('scroll', function () {
             var y = window.scrollY || window.pageYOffset;
-            if (y <= scrollThresh) {
+            var isMobile = window.matchMedia('(max-width: 768px)').matches;
+            if (isMobile) {
+                var headerHeight = siteHeader.offsetHeight;
+                var translate = Math.min(y, headerHeight);
+                siteHeader.style.transition = 'none';
+                siteHeader.style.transform = 'translateY(-' + translate + 'px)';
                 siteHeader.classList.remove('site-header--hidden');
-            } else if (y > lastScrollY) {
-                siteHeader.classList.add('site-header--hidden');
             } else {
-                siteHeader.classList.remove('site-header--hidden');
+                siteHeader.style.transition = '';
+                siteHeader.style.transform = '';
+                if (y <= scrollThresh) {
+                    siteHeader.classList.remove('site-header--hidden');
+                } else if (y > lastScrollY) {
+                    siteHeader.classList.add('site-header--hidden');
+                } else {
+                    siteHeader.classList.remove('site-header--hidden');
+                }
             }
             lastScrollY = y;
         }, { passive: true });
