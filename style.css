@@ -197,6 +197,9 @@ body {
     box-shadow: var(--shadow);
     transition: box-shadow 0.2s, background 0.2s;
     animation: cardIn 0.3s ease-out;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
 }
 
 @keyframes cardIn {
@@ -257,6 +260,8 @@ body {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
+    flex: 1;
+    min-height: 2.8em;
 }
 
 .card .meta {
