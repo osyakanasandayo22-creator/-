@@ -71,7 +71,7 @@
         if (trigger) trigger.setAttribute('aria-expanded', 'false');
         if (isLoggedIn()) {
             loginBtn.hidden = true;
-            loginBtn.removeAttribute('hidden');
+            loginBtn.setAttribute('hidden', '');
             authUser.hidden = false;
             authUser.removeAttribute('hidden');
             authUser.style.display = '';
