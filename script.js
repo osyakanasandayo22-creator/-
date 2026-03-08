@@ -1036,6 +1036,10 @@
             '<h3 id="detail-reply-heading" class="detail-reply-heading">返信 <span class="detail-reply-count-badge" id="detail-reply-count-badge"></span></h3>' +
             (isLoggedIn()
                 ? '<form class="detail-reply-form" id="detail-reply-form" data-post-id="' + _escape(item.id) + '">' +
+                  '<div class="detail-reply-to-hint" id="detail-reply-to-hint" style="display:none;">' +
+                  '<span class="detail-reply-to-hint-text" id="detail-reply-to-hint-text"></span>' +
+                  '<button type="button" class="detail-reply-to-cancel btn btn-sm" id="detail-reply-to-cancel">キャンセル</button>' +
+                  '</div>' +
                   '<textarea class="detail-reply-textarea" name="replyBody" placeholder="返信を書く..." rows="3" maxlength="500"></textarea>' +
                   '<div class="detail-reply-actions">' +
                   '<span class="detail-reply-count" aria-live="polite">0 / 500</span>' +
@@ -1126,6 +1130,31 @@
             };
         }
 
+        var replyingToReplyId = null;
+        var replyingToDisplayName = null;
+        function updateReplyFormHint() {
+            var hintEl = container.querySelector('#detail-reply-to-hint');
+            var hintText = container.querySelector('#detail-reply-to-hint-text');
+            var textarea = container.querySelector('.detail-reply-textarea');
+            if (!hintEl || !textarea) return;
+            if (replyingToReplyId && replyingToDisplayName) {
+                hintEl.style.display = '';
+                if (hintText) hintText.textContent = replyingToDisplayName + 'さんに返信中';
+                textarea.placeholder = replyingToDisplayName + 'さんに返信を書く...';
+            } else {
+                hintEl.style.display = 'none';
+                if (hintText) hintText.textContent = '';
+                textarea.placeholder = '返信を書く...';
+            }
+        }
+        function setReplyingTo(rid, name) {
+            replyingToReplyId = rid || null;
+            replyingToDisplayName = name || null;
+            updateReplyFormHint();
+            var ta = container.querySelector('.detail-reply-textarea');
+            if (ta) ta.focus();
+        }
+
         var replyListEl = container.querySelector('#detail-reply-list');
         var replyCountBadge = container.querySelector('#detail-reply-count-badge');
         function renderReplyList(replies) {
@@ -1142,6 +1171,7 @@
                 replyCountBadge.style.visibility = sorted.length ? 'visible' : 'hidden';
             }
             var currentUid = auth && auth.currentUser ? auth.currentUser.uid : '';
+            var postAuthorId = item.authorId || '';
             replyListEl.innerHTML = sorted.map(function (r) {
                 var name = (r.authorDisplayName || '匿名');
                 var replyVerifiedBadge = ((r.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
@@ -1151,18 +1181,24 @@
                 var likeImgSrc = getLikeIconSrc(replyLiked);
                 var replyId = (r.id || '').toString();
                 var isMine = currentUid && r.authorId === currentUid;
+                var isPostAuthor = postAuthorId && r.authorId === postAuthorId;
+                var authorBadgeHtml = isPostAuthor ? ' <span class="detail-reply-badge detail-reply-badge--author">投稿者</span>' : '';
+                var replyToLineHtml = (r.replyToReplyId && r.replyToDisplayName) ? '<div class="detail-reply-to-line">' + _escape(r.replyToDisplayName) + 'さんへの返信</div>' : '';
                 var deleteBtnHtml = isMine
                     ? '<button type="button" class="btn btn-sm danger detail-reply-delete-btn" data-action="reply-delete" data-post-id="' + _escape(item.id) + '" data-reply-id="' + _escape(replyId) + '" title="返信を削除">削除</button>'
                     : '';
+                var replyToBtnHtml = '<button type="button" class="btn btn-sm detail-reply-reply-btn" data-action="reply-to-reply" data-reply-id="' + _escape(replyId) + '" data-reply-to-name="' + _escape(name) + '" title="この返信に返信">返信</button>';
                 return '<div class="detail-reply-item" role="listitem" data-reply-id="' + _escape(replyId) + '">' +
                     '<div class="detail-reply-item-header">' +
-                    '<span class="detail-reply-item-author">' + _escape(name) + '</span>' + replyVerifiedBadge +
+                    '<span class="detail-reply-item-author">' + _escape(name) + '</span>' + authorBadgeHtml + replyVerifiedBadge +
                     '<time class="detail-reply-item-date" datetime="' + _escape(r.createdAt || '') + '">' + _escape(date) + '</time>' +
                     '</div>' +
+                    replyToLineHtml +
                     '<div class="detail-reply-item-body">' + _escape(r.body || '') + '</div>' +
                     '<div class="detail-reply-item-footer">' +
                     '<div class="detail-reply-item-actions">' +
                     deleteBtnHtml +
+                    replyToBtnHtml +
                     '<button type="button" class="btn detail-reply-like-btn" data-action="reply-like" data-post-id="' + _escape(item.id) + '" data-reply-id="' + _escape(replyId) + '" title="高評価">' +
                     '<img class="like-icon" src="' + _escape(likeImgSrc) + '" alt=""><span class="detail-reply-like-count">' + replyLikes + '</span>' +
                     '</button>' +
@@ -1195,6 +1231,13 @@
                     });
                 };
             });
+            replyListEl.querySelectorAll('.detail-reply-reply-btn').forEach(function (btn) {
+                btn.onclick = function () {
+                    var toName = btn.getAttribute('data-reply-to-name');
+                    var rid = btn.getAttribute('data-reply-id');
+                    setReplyingTo(rid || null, toName || '');
+                };
+            });
         }
         renderReplyList(item.replies);
         if (db) {
@@ -1211,7 +1254,9 @@
                             authorFollowersCount: typeof data.authorFollowersCount === 'number' ? data.authorFollowersCount : 0,
                             createdAt: data.createdAt,
                             likes: typeof data.likes === 'number' ? data.likes : 0,
-                            likedBy: Array.isArray(data.likedBy) ? data.likedBy : []
+                            likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
+                            replyToReplyId: data.replyToReplyId || null,
+                            replyToDisplayName: data.replyToDisplayName || null
                         };
                     });
                     item.replies = list;
@@ -1232,6 +1277,12 @@
                 replyTextarea.addEventListener('input', updateReplyCount);
                 updateReplyCount();
             }
+            var replyToCancelBtn = container.querySelector('#detail-reply-to-cancel');
+            if (replyToCancelBtn) {
+                replyToCancelBtn.addEventListener('click', function () {
+                    setReplyingTo(null, null);
+                });
+            }
             replyForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 if (!replyTextarea) return;
@@ -1240,9 +1291,14 @@
                     showToast('返信内容を入力してください');
                     return;
                 }
+                var toReplyId = replyingToReplyId || null;
+                var toDisplayName = replyingToDisplayName || null;
                 submitReply(item.id, body, function () {
                     renderReplyList(item.replies);
-                });
+                }, toReplyId, toDisplayName);
+                replyingToReplyId = null;
+                replyingToDisplayName = null;
+                updateReplyFormHint();
                 replyTextarea.value = '';
                 updateReplyCount();
                 showToast('返信を送信しました');
@@ -1251,10 +1307,12 @@
         }
     }
 
-    function submitReply(postId, body, onAdded) {
+    function submitReply(postId, body, onAdded, replyToReplyId, replyToDisplayName) {
         if (!isLoggedIn() || !auth || !auth.currentUser) return;
         var uid = auth.currentUser.uid;
         var displayName = getDisplayName(auth.currentUser);
+        var toReplyId = replyToReplyId || null;
+        var toDisplayName = (replyToDisplayName && String(replyToDisplayName).trim()) ? String(replyToDisplayName).trim() : null;
         function addReply(authorFollowersCount) {
             var fc = typeof authorFollowersCount === 'number' ? authorFollowersCount : 0;
             var newReply = {
@@ -1264,18 +1322,23 @@
                 authorFollowersCount: fc,
                 createdAt: new Date().toISOString(),
                 likes: 0,
+                likedBy: [],
+                replyToReplyId: toReplyId,
+                replyToDisplayName: toDisplayName
+            };
+            var payload = {
+                body: body,
+                authorId: uid,
+                authorDisplayName: displayName,
+                authorFollowersCount: fc,
+                createdAt: new Date().toISOString(),
+                likes: 0,
                 likedBy: []
             };
+            if (toReplyId) payload.replyToReplyId = toReplyId;
+            if (toDisplayName) payload.replyToDisplayName = toDisplayName;
             if (db) {
-                db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').add({
-                    body: body,
-                    authorId: uid,
-                    authorDisplayName: displayName,
-                    authorFollowersCount: fc,
-                    createdAt: new Date().toISOString(),
-                    likes: 0,
-                    likedBy: []
-                }).then(function (ref) {
+                db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').add(payload).then(function (ref) {
                     if (ref && ref.id) {
                         newReply.id = ref.id;
                         if (typeof onAdded === 'function') onAdded();

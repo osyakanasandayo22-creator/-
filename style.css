@@ -1019,6 +1019,29 @@ textarea,
     color: var(--text-sub);
 }
 
+/* 投稿者バッジ（投稿主による返信） */
+.detail-reply-badge {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+.detail-reply-badge--author {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* 返信に対する返信の表示（○○さんへの返信） */
+.detail-reply-to-line {
+    font-size: 0.75rem;
+    color: var(--text-sub);
+    margin-bottom: 4px;
+    padding-left: 4px;
+    border-left: 3px solid var(--accent);
+}
+
 .detail-reply-item-body {
     font-size: 0.9375rem;
     line-height: 1.5;
@@ -1046,6 +1069,21 @@ textarea,
 .detail-reply-delete-btn {
     padding: 4px 10px;
     font-size: 0.8125rem;
+}
+
+.detail-reply-reply-btn {
+    padding: 4px 10px;
+    font-size: 0.8125rem;
+    color: var(--text-sub);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+.detail-reply-reply-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 .detail-reply-like-btn {
@@ -1184,6 +1222,38 @@ textarea,
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+/* 返信先ヒント（○○さんに返信中） */
+.detail-reply-to-hint {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    color: var(--text-sub);
+}
+.detail-reply-to-hint-text {
+    font-weight: 500;
+    color: var(--accent);
+}
+.detail-reply-to-cancel {
+    flex-shrink: 0;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    color: var(--text-sub);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.detail-reply-to-cancel:hover {
+    color: var(--text-main);
+    border-color: var(--text-sub);
 }
 
 .detail-reply-textarea {
