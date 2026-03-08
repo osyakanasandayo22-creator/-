@@ -216,6 +216,26 @@
         });
     }
 
+    /** フィードを更新（Firestoreから再取得 or 表示の再描画） */
+    function doRefresh() {
+        if (db) {
+            loadFromFirestore().then(function (data) {
+                thoughts = Array.isArray(data) ? data : [];
+                save();
+                renderFeed();
+                renderTagFilter();
+                if (isLoggedIn()) loadMyFollowing();
+                showToast('更新しました');
+            }).catch(function () {
+                renderFeed();
+                showToast('更新に失敗しました');
+            });
+        } else {
+            renderFeed();
+            showToast('更新しました');
+        }
+    }
+
     function loadUserProfile(uid) {
         if (!db || !uid) return Promise.resolve({ icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 });
         return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).get()
@@ -1781,6 +1801,47 @@
     }
 
     // イベント
+    var siteTitle = document.querySelector('.site-title');
+    if (siteTitle) {
+        siteTitle.setAttribute('title', 'タップで更新');
+        siteTitle.addEventListener('click', function () { doRefresh(); });
+    }
+
+    /* スマホ：一番上で下へスクロール（プルダウン）で更新（X/Twitter風） */
+    (function () {
+        var pullStartY = 0;
+        var pullStartScrollTop = 0;
+        var didPull = false;
+        var scrollEl = document.documentElement;
+
+        function getScrollTop() {
+            return window.scrollY || window.pageYOffset || scrollEl.scrollTop || 0;
+        }
+
+        viewFeed.addEventListener('touchstart', function (e) {
+            if (!viewFeed.hidden && e.touches.length === 1) {
+                pullStartY = e.touches[0].clientY;
+                pullStartScrollTop = getScrollTop();
+                didPull = false;
+            }
+        }, { passive: true });
+
+        viewFeed.addEventListener('touchmove', function (e) {
+            if (e.touches.length !== 1 || viewFeed.hidden) return;
+            if (pullStartScrollTop <= 5 && e.touches[0].clientY - pullStartY > 55) {
+                didPull = true;
+            }
+        }, { passive: true });
+
+        viewFeed.addEventListener('touchend', function () {
+            if (viewFeed.hidden) return;
+            if (didPull && getScrollTop() <= 10) {
+                doRefresh();
+            }
+            didPull = false;
+        }, { passive: true });
+    })();
+
     document.getElementById('post-trigger').addEventListener('click', function () {
         if (!isLoggedIn()) {
             showToast('ログインすると投稿できます');
