@@ -198,10 +198,29 @@
                 <input type="text" id="post-tags" placeholder="タグ（カンマ区切り）" class="editor-tags-input">
                 <span class="char-count editor-title-count" id="title-count">0 / 50</span>
             </div>
+            <div class="editor-toc-section" id="editor-toc-section">
+                <label class="editor-toc-toggle">
+                    <input type="checkbox" id="post-toc-enable" aria-describedby="editor-toc-desc">
+                    <span>目次を表示する</span>
+                </label>
+                <div class="editor-toc-body" id="editor-toc-body" hidden>
+                    <p class="editor-toc-desc" id="editor-toc-desc">見出し（H2・H3）を本文に挿入し、「本文の見出しから生成」で目次を作成できます。項目は手動で追加・編集もできます。</p>
+                    <ul class="editor-toc-list" id="editor-toc-list" role="list"></ul>
+                    <div class="editor-toc-actions">
+                        <button type="button" class="btn btn--outline btn-sm" id="toc-add-item">項目を追加</button>
+                        <button type="button" class="btn btn--outline btn-sm" id="toc-from-headings">本文の見出しから生成</button>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <div class="editor-toolbar-wrap">
             <div class="toolbar" id="post-toolbar" role="toolbar">
+                <div class="toolbar-group" aria-label="見出し">
+                    <button type="button" class="tool-btn" id="tool-h2" title="見出し（大）">H2</button>
+                    <button type="button" class="tool-btn" id="tool-h3" title="見出し（小）">H3</button>
+                </div>
+                <div class="toolbar-divider"></div>
                 <div class="toolbar-group" aria-label="文字装飾">
                     <button type="button" class="tool-btn tool-format" id="tool-bold" title="太字" data-cmd="bold"><b>B</b></button>
                     <button type="button" class="tool-btn tool-format" id="tool-italic" title="斜体" data-cmd="italic"><i>I</i></button>

@@ -959,7 +959,14 @@
                 ? '<div class="detail-tags">' + item.tags.map(function (t) { return '<span class="tag">' + _escape(t) + '</span>'; }).join('') + '</div>'
                 : '') +
             '</div>' +
-            '<div class="detail-content">' + (item.content || '') + '</div>' +
+            (item.toc && item.toc.length
+                ? '<nav class="detail-toc" aria-label="目次"><p class="detail-toc-title">目次</p><ol class="detail-toc-list">' +
+                  item.toc.map(function (entry, i) {
+                      return '<li><a href="#toc-' + i + '" class="detail-toc-link">' + _escape(entry.title || '') + '</a></li>';
+                  }).join('') +
+                  '</ol></nav>'
+                : '') +
+            '<div class="detail-content">' + (item.toc && item.toc.length ? contentWithTocIds(item.content || '') : (item.content || '')) + '</div>' +
             '<div class="detail-footer">' +
             '<button type="button" class="btn detail-like-btn" data-action="like" data-id="' + _escape(item.id) + '" title="高評価">' +
             '<img class="like-icon" src="' + _escape(detailLikeImgSrc) + '" alt=""><span class="detail-like-count">' + likes + '</span>' +
@@ -983,6 +990,20 @@
         modalOverlay.classList.add('is-open');
         modalOverlay.style.display = 'block';
         document.body.style.overflow = 'hidden';
+
+        modalBody.querySelectorAll('.detail-toc-link').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                var href = link.getAttribute('href');
+                if (href && href.indexOf('#') === 0) {
+                    var id = href.slice(1);
+                    var target = modalBody.querySelector('#' + id);
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            });
+        });
 
         var authorEl = modalBody.querySelector('.detail-author[data-author-id]');
         if (authorEl && item.authorId) {
@@ -1863,6 +1884,10 @@
         var tagsEl = document.getElementById('post-tags');
         var submitBtn = document.getElementById('submit-post');
 
+        var tocEnable = document.getElementById('post-toc-enable');
+        var tocBody = document.getElementById('editor-toc-body');
+        var tocListEl = document.getElementById('editor-toc-list');
+
         if (editingId) {
             var item = thoughts.find(function (t) { return t.id === editingId; });
             if (!item || item.authorId !== auth.currentUser.uid) {
@@ -1874,17 +1899,108 @@
             titleEl.value = item ? item.title : '';
             contentEl.innerHTML = item ? item.content : '';
             tagsEl.value = item && item.tags ? item.tags.join(', ') : '';
+            if (tocEnable && tocBody && tocListEl) {
+                tocEnable.checked = !!(item.toc && item.toc.length > 0);
+                tocBody.hidden = !tocEnable.checked;
+                renderTocList(tocListEl, item.toc || []);
+            }
         } else {
             submitBtn.textContent = '投稿する';
             titleEl.value = '';
             contentEl.innerHTML = '';
             tagsEl.value = '';
+            if (tocEnable && tocBody && tocListEl) {
+                tocEnable.checked = false;
+                tocBody.hidden = true;
+                renderTocList(tocListEl, []);
+            }
         }
         updateCharCounts();
         if (viewFeed) viewFeed.hidden = true;
         if (viewEditor) viewEditor.hidden = false;
         document.body.style.overflow = 'hidden';
         if (titleEl) titleEl.focus();
+    }
+
+    function renderTocList(container, items) {
+        if (!container) return;
+        container.innerHTML = '';
+        (items || []).forEach(function (entry, i) {
+            var li = document.createElement('li');
+            li.className = 'editor-toc-item';
+            li.innerHTML = '<input type="text" class="editor-toc-item-input" value="' + _escape(entry.title || '') + '" placeholder="目次項目" maxlength="100">' +
+                '<button type="button" class="editor-toc-item-remove" aria-label="削除" data-index="' + i + '">&times;</button>';
+            container.appendChild(li);
+        });
+    }
+
+    function getTocFromEditor() {
+        var listEl = document.getElementById('editor-toc-list');
+        if (!listEl) return [];
+        var inputs = listEl.querySelectorAll('.editor-toc-item-input');
+        var arr = [];
+        inputs.forEach(function (inp) {
+            var t = (inp.value || '').trim();
+            if (t) arr.push({ title: t });
+        });
+        return arr;
+    }
+
+    function setTocInEditor(items) {
+        var listEl = document.getElementById('editor-toc-list');
+        if (!listEl) return;
+        renderTocList(listEl, items || []);
+    }
+
+    function getHeadingsFromContent() {
+        var contentEl = document.getElementById('post-content');
+        if (!contentEl) return [];
+        var headings = contentEl.querySelectorAll('h2, h3');
+        var arr = [];
+        headings.forEach(function (h) {
+            var t = (h.textContent || '').trim();
+            if (t) arr.push({ title: t });
+        });
+        return arr;
+    }
+
+    function insertHeading(level) {
+        var editor = document.getElementById('post-content');
+        if (!editor) return;
+        editor.focus();
+        var tag = level === 2 ? 'h2' : 'h3';
+        var defaultText = level === 2 ? '見出し' : '小見出し';
+        var sel = window.getSelection();
+        var range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+        if (!range || !editor.contains(range.commonAncestorContainer)) {
+            range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+        }
+        var el = document.createElement(tag);
+        el.textContent = defaultText;
+        el.contentEditable = 'true';
+        try {
+            range.collapse(true);
+            range.insertNode(el);
+            range.setStartAfter(el);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        } catch (e) {
+            editor.appendChild(el);
+        }
+    }
+
+    function contentWithTocIds(html) {
+        if (!html) return '';
+        var wrap = document.createElement('div');
+        wrap.innerHTML = html;
+        var headings = wrap.querySelectorAll('h2, h3');
+        headings.forEach(function (h, i) {
+            h.id = 'toc-' + i;
+        });
+        return wrap.innerHTML;
     }
 
     function updateCharCounts() {
@@ -1954,6 +2070,8 @@
         var content = contentEl ? contentEl.innerHTML.replace(/\u200B/g, '') : '';
         var rawTags = (tagsEl && tagsEl.value) ? tagsEl.value.split(/[,，、\s]+/) : [];
         var tags = rawTags.map(function (t) { return t.trim(); }).filter(Boolean);
+        var tocEnabled = document.getElementById('post-toc-enable') && document.getElementById('post-toc-enable').checked;
+        var toc = tocEnabled ? getTocFromEditor() : [];
 
         var plainText = contentEl ? (contentEl.textContent || '').replace(/\u200B/g, '').trim() : '';
         if (!title || !plainText) {
@@ -1976,6 +2094,7 @@
                     item.title = title;
                     item.content = content;
                     item.tags = tags;
+                    item.toc = toc;
                     item.updatedAt = _now();
                     if (uid) { item.authorId = uid; item.authorDisplayName = displayName; item.authorIcon = authorIcon; item.authorIconBg = authorIconBg; }
                 }
@@ -1986,6 +2105,7 @@
                     title: title,
                     content: content,
                     tags: tags,
+                    toc: toc,
                     createdAt: _now(),
                     updatedAt: _now(),
                     likes: 0,
@@ -2132,6 +2252,52 @@
     if (editorBack) editorBack.addEventListener('click', function () { closeEditorView(); editingId = null; });
     document.getElementById('close-detail').addEventListener('click', function () { closeModal(modalOverlay); });
     document.getElementById('submit-post').addEventListener('click', submitPost);
+
+    (function () {
+        var tocEnable = document.getElementById('post-toc-enable');
+        var tocBody = document.getElementById('editor-toc-body');
+        if (tocEnable && tocBody) {
+            tocEnable.addEventListener('change', function () {
+                tocBody.hidden = !tocEnable.checked;
+            });
+        }
+        var tocAddBtn = document.getElementById('toc-add-item');
+        var tocListEl = document.getElementById('editor-toc-list');
+        if (tocAddBtn && tocListEl) {
+            tocAddBtn.addEventListener('click', function () {
+                var items = getTocFromEditor();
+                items.push({ title: '' });
+                setTocInEditor(items);
+            });
+        }
+        var tocFromHeadingsBtn = document.getElementById('toc-from-headings');
+        if (tocFromHeadingsBtn) {
+            tocFromHeadingsBtn.addEventListener('click', function () {
+                var items = getHeadingsFromContent();
+                if (items.length === 0) {
+                    showToast('本文に見出し（H2・H3）がありません。ツールバーの H2 / H3 で挿入できます');
+                    return;
+                }
+                setTocInEditor(items);
+                showToast('見出しから目次を生成しました');
+            });
+        }
+        if (tocListEl) {
+            tocListEl.addEventListener('click', function (e) {
+                var btn = e.target && e.target.closest('.editor-toc-item-remove');
+                if (!btn) return;
+                e.preventDefault();
+                var li = btn.closest('li');
+                if (li) {
+                    li.remove();
+                }
+            });
+        }
+        var toolH2 = document.getElementById('tool-h2');
+        var toolH3 = document.getElementById('tool-h3');
+        if (toolH2) toolH2.addEventListener('click', function () { insertHeading(2); });
+        if (toolH3) toolH3.addEventListener('click', function () { insertHeading(3); });
+    })();
 
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
     document.getElementById('export-btn').addEventListener('click', exportData);
