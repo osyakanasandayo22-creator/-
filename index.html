@@ -160,6 +160,18 @@
         </div>
     </div>
 
+    <!-- 削除確認ダイアログ（サイト内） -->
+    <div class="confirm-overlay" id="delete-confirm-overlay" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" aria-describedby="delete-confirm-desc" hidden>
+        <div class="confirm-dialog">
+            <h2 id="delete-confirm-title" class="confirm-dialog-title">投稿を削除しますか？</h2>
+            <p id="delete-confirm-desc" class="confirm-dialog-desc">この操作は取り消せません。投稿とその返信がすべて削除されます。</p>
+            <div class="confirm-dialog-actions">
+                <button type="button" class="btn btn--outline" id="delete-confirm-cancel">キャンセル</button>
+                <button type="button" class="btn danger" id="delete-confirm-ok">削除する</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ログインモーダル -->
     <div class="overlay auth-overlay" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" hidden>
         <div class="auth-modal">

@@ -167,8 +167,12 @@
     const filterTag = document.getElementById('filter-tag');
     const searchHint = document.getElementById('search-hint');
     const toastEl = document.getElementById('toast');
+    const deleteConfirmOverlay = document.getElementById('delete-confirm-overlay');
+    const deleteConfirmCancel = document.getElementById('delete-confirm-cancel');
+    const deleteConfirmOk = document.getElementById('delete-confirm-ok');
 
     let editingId = null;
+    let pendingDeleteCallback = null;
     let currentDetailId = null;
     let searchTimeout = null;
     let viewingProfileUserId = null;
@@ -813,11 +817,13 @@
                 closeModal(modalOverlay);
             };
             if (deleteBtn) deleteBtn.onclick = function () {
-                deletePost(item.id);
-                closeModal(modalOverlay);
-                renderFeed();
-                renderTagFilter();
-                showToast('削除しました');
+                showDeleteConfirm(function () {
+                    deletePost(item.id);
+                    closeModal(modalOverlay);
+                    renderFeed();
+                    renderTagFilter();
+                    showToast('削除しました');
+                });
             };
         }
 
@@ -1034,6 +1040,16 @@
         overlay.classList.remove('is-open');
         document.body.style.overflow = '';
         currentDetailId = null;
+    }
+
+    function showDeleteConfirm(onConfirm) {
+        pendingDeleteCallback = onConfirm;
+        if (deleteConfirmOverlay) deleteConfirmOverlay.hidden = false;
+    }
+
+    function closeDeleteConfirm() {
+        pendingDeleteCallback = null;
+        if (deleteConfirmOverlay) deleteConfirmOverlay.hidden = true;
     }
 
     function closeEditorView() {
@@ -1612,11 +1628,30 @@
         if (e.target === modalOverlay) closeModal(modalOverlay);
     });
 
+    if (deleteConfirmCancel) {
+        deleteConfirmCancel.addEventListener('click', function () { closeDeleteConfirm(); });
+    }
+    if (deleteConfirmOk) {
+        deleteConfirmOk.addEventListener('click', function () {
+            if (pendingDeleteCallback) {
+                pendingDeleteCallback();
+                closeDeleteConfirm();
+            }
+        });
+    }
+    if (deleteConfirmOverlay) {
+        deleteConfirmOverlay.addEventListener('click', function (e) {
+            if (e.target === deleteConfirmOverlay) closeDeleteConfirm();
+        });
+    }
+
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             var authOverlay = document.getElementById('auth-overlay');
             var profileSettingsOverlay = document.getElementById('profile-settings-overlay');
-            if (authOverlay && !authOverlay.hidden) {
+            if (deleteConfirmOverlay && !deleteConfirmOverlay.hidden) {
+                closeDeleteConfirm();
+            } else if (authOverlay && !authOverlay.hidden) {
                 closeLoginModal();
             } else if (profileSettingsOverlay && !profileSettingsOverlay.hidden) {
                 closeProfileSettingsModal();
