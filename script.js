@@ -113,7 +113,8 @@
             updatedAt: t.updatedAt || t.createdAt || _now(),
             likes: typeof t.likes === 'number' ? t.likes : 0,
             authorId: t.authorId || '',
-            authorDisplayName: t.authorDisplayName || ''
+            authorDisplayName: t.authorDisplayName || '',
+            authorIcon: t.authorIcon || '👤'
         };
     }
 
@@ -169,7 +170,8 @@
                     updatedAt: d.updatedAt,
                     likes: d.likes,
                     authorId: d.authorId,
-                    authorDisplayName: d.authorDisplayName
+                    authorDisplayName: d.authorDisplayName,
+                    authorIcon: d.authorIcon
                 }));
             });
             return list;
@@ -502,10 +504,16 @@
         list.forEach(function (thought, index) {
             const plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
             const likes = typeof thought.likes === 'number' ? thought.likes : 0;
+            const authorName = thought.authorDisplayName || '匿名';
+            const authorIcon = thought.authorIcon || '👤';
             const card = document.createElement('div');
             card.className = 'card';
             card.dataset.id = thought.id;
             card.innerHTML =
+                '<div class="card-author">' +
+                '<span class="card-author-icon" aria-hidden="true">' + _escape(authorIcon) + '</span>' +
+                '<span class="card-author-name">' + _escape(authorName) + '</span>' +
+                '</div>' +
                 '<h3>' + _escape(thought.title) + '</h3>' +
                 '<div class="preview">' + _escape(plainText) + '</div>' +
                 '<div class="meta">' +
@@ -569,8 +577,14 @@
               '<button type="button" class="btn danger" data-action="delete" data-id="' + _escape(item.id) + '">削除</button>' +
               '</div>'
             : '';
+        var detailAuthorName = item.authorDisplayName || '匿名';
+        var detailAuthorIcon = item.authorIcon || '👤';
         modalBody.innerHTML =
             '<article class="detail-card">' +
+            '<div class="detail-author">' +
+            '<span class="detail-author-icon" aria-hidden="true">' + _escape(detailAuthorIcon) + '</span>' +
+            '<span class="detail-author-name">' + _escape(detailAuthorName) + '</span>' +
+            '</div>' +
             '<h2 class="detail-title">' + _escape(item.title) + '</h2>' +
             '<div class="detail-meta-line">' +
             '<time class="detail-date" datetime="' + _escape(item.updatedAt || item.createdAt) + '">' + _escape(formatDate(item.updatedAt || item.createdAt)) + '</time>' +
@@ -652,10 +666,16 @@
             myPosts.forEach(function (thought) {
                 var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
                 var likes = typeof thought.likes === 'number' ? thought.likes : 0;
+                var authorName = thought.authorDisplayName || '匿名';
+                var authorIcon = thought.authorIcon || '👤';
                 var card = document.createElement('div');
                 card.className = 'card profile-page-card-item';
                 card.dataset.id = thought.id;
                 card.innerHTML =
+                    '<div class="card-author">' +
+                    '<span class="card-author-icon" aria-hidden="true">' + _escape(authorIcon) + '</span>' +
+                    '<span class="card-author-name">' + _escape(authorName) + '</span>' +
+                    '</div>' +
                     '<h3>' + _escape(thought.title) + '</h3>' +
                     '<div class="preview">' + _escape(plainText) + '</div>' +
                     '<div class="meta">' +
@@ -848,39 +868,48 @@
 
         var uid = auth && auth.currentUser ? auth.currentUser.uid : '';
         var displayName = auth && auth.currentUser ? getDisplayName(auth.currentUser) : '';
-        if (editingId) {
-            var item = thoughts.find(function (t) { return t.id === editingId; });
-            if (item) {
-                item.title = title;
-                item.content = content;
-                item.tags = tags;
-                item.updatedAt = _now();
-                if (uid) { item.authorId = uid; item.authorDisplayName = displayName; }
+        function doSave(authorIcon) {
+            authorIcon = authorIcon || '👤';
+            if (editingId) {
+                var item = thoughts.find(function (t) { return t.id === editingId; });
+                if (item) {
+                    item.title = title;
+                    item.content = content;
+                    item.tags = tags;
+                    item.updatedAt = _now();
+                    if (uid) { item.authorId = uid; item.authorDisplayName = displayName; item.authorIcon = authorIcon; }
+                }
+                showToast('更新しました');
+            } else {
+                thoughts.unshift({
+                    id: _uid(),
+                    title: title,
+                    content: content,
+                    tags: tags,
+                    createdAt: _now(),
+                    updatedAt: _now(),
+                    likes: 0,
+                    authorId: uid,
+                    authorDisplayName: displayName,
+                    authorIcon: authorIcon
+                });
+                showToast('投稿しました');
             }
-            showToast('更新しました');
-        } else {
-            thoughts.unshift({
-                id: _uid(),
-                title: title,
-                content: content,
-                tags: tags,
-                createdAt: _now(),
-                updatedAt: _now(),
-                likes: 0,
-                authorId: uid,
-                authorDisplayName: displayName
-            });
-            showToast('投稿しました');
+            save();
+            renderFeed();
+            renderTagFilter();
+            closeEditorView();
+            editingId = null;
+            titleEl.value = '';
+            contentEl.innerHTML = '';
+            if (tagsEl) tagsEl.value = '';
+            updateCharCounts();
         }
-        save();
-        renderFeed();
-        renderTagFilter();
-        closeEditorView();
-        editingId = null;
-        titleEl.value = '';
-        contentEl.innerHTML = '';
-        if (tagsEl) tagsEl.value = '';
-        updateCharCounts();
+        if (uid && db) {
+            loadUserProfile(uid).then(function (profile) { doSave(profile.icon); });
+        } else {
+            doSave('👤');
+        }
     }
 
     function initTheme() {
@@ -1079,21 +1108,6 @@
     var profileSettingsOverlayEl = document.getElementById('profile-settings-overlay');
     if (profileSettingsOverlayEl) profileSettingsOverlayEl.addEventListener('click', function (e) {
         if (e.target === profileSettingsOverlayEl) closeProfileSettingsModal();
-    });
-    var profileNicknameBtn = document.getElementById('profile-nickname-btn');
-    if (profileNicknameBtn) profileNicknameBtn.addEventListener('click', function () {
-        if (!auth || !auth.currentUser) return;
-        var current = getDisplayName(auth.currentUser);
-        var value = window.prompt('ニックネームを入力してください', current === auth.currentUser.email || current === 'ログイン中' ? '' : current);
-        if (value === null) return;
-        value = (value || '').trim();
-        auth.currentUser.updateProfile({ displayName: value || '' }).then(function () {
-            updateAuthUI();
-            closeProfileDropdown();
-            showToast(value ? 'ニックネームを更新しました' : 'ニックネームを解除しました');
-        }).catch(function (err) {
-            showToast(err.message || '更新に失敗しました');
-        });
     });
     var profileLogout = document.getElementById('profile-logout');
     if (profileLogout) profileLogout.addEventListener('click', function () {
