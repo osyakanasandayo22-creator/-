@@ -313,9 +313,6 @@ textarea,
         margin: 32px auto 80px;
         padding: 0 40px 80px;
     }
-    .feed .popular-tags-section {
-        display: none;
-    }
 }
 
 .feed-timeline {
