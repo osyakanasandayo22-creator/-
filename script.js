@@ -871,12 +871,25 @@
         p.then(function () {
             return saveUserProfile(uid, { icon: icon, iconBg: iconBg });
         }).then(function () {
+            thoughts.forEach(function (t) {
+                if (t.authorId === uid) {
+                    t.authorDisplayName = displayName || getDisplayName(auth.currentUser);
+                    t.authorIcon = icon;
+                    t.authorIconBg = iconBg;
+                }
+            });
+            save();
             closeProfileSettingsModal();
             updateAuthUI();
             loadUserProfile(uid).then(function (profile) {
                 renderProfilePage(profile);
                 updateHeaderAvatar(profile);
             });
+            renderFeed();
+            if (currentDetailId) {
+                var item = thoughts.find(function (t) { return t.id === currentDetailId; });
+                if (item && item.authorId === uid) showDetail(currentDetailId);
+            }
             showToast('プロフィールを更新しました');
         }).catch(function (err) {
             if (errorEl) {
