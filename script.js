@@ -316,7 +316,8 @@
         var style = '';
         if (iconBg) style = ' style="background-color:' + _escape(iconBg) + (isInitial ? ';color:#fff' : '') + '"';
         var extraClass = isInitial ? ' ' + iconClass + '--initial' : '';
-        return '<span class="' + _escape(iconClass) + extraClass + '" aria-hidden="true"' + style + '>' + content + '</span>';
+        var idAttr = (iconClass === 'profile-page-avatar') ? ' id="profile-page-avatar"' : '';
+        return '<span class="' + _escape(iconClass) + extraClass + '"' + idAttr + ' aria-hidden="true"' + style + '>' + content + '</span>';
     }
 
     function saveUserProfile(uid, data) {
