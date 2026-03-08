@@ -587,6 +587,13 @@
         if (modalOverlay.classList.contains('is-open') && currentDetailId === id) {
             showDetail(id);
         }
+        var runPop = function (el) {
+            if (!el) return;
+            el.classList.add('like-icon--pop');
+            setTimeout(function () { el.classList.remove('like-icon--pop'); }, 350);
+        };
+        runPop(feed.querySelector('.card[data-id="' + id + '"] .like-icon'));
+        runPop(modalBody.querySelector('.detail-like-btn .like-icon'));
     }
 
     function showDetail(id) {
