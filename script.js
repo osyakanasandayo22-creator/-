@@ -6,13 +6,58 @@
     const FIRESTORE_COLLECTION = 'posts';
 
     var db = null;
+    var auth = null;
     if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined' &&
         firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('ここに') === -1) {
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
+            auth = firebase.auth();
         } catch (e) {
             db = null;
+            auth = null;
+        }
+    }
+
+    function isLoggedIn() {
+        if (!auth) return true;
+        return !!auth.currentUser;
+    }
+
+    function showLoginModal() {
+        var overlay = document.getElementById('auth-overlay');
+        if (overlay) {
+            overlay.hidden = false;
+            overlay.style.display = 'block';
+            document.getElementById('auth-error').hidden = true;
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeLoginModal() {
+        var overlay = document.getElementById('auth-overlay');
+        if (overlay) {
+            overlay.hidden = true;
+            overlay.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+
+    function updateAuthUI() {
+        var loginBtn = document.getElementById('login-btn');
+        var authUser = document.getElementById('auth-user');
+        var authEmail = document.getElementById('auth-email');
+        var postTrigger = document.getElementById('post-trigger');
+        if (!loginBtn || !authUser) return;
+        if (isLoggedIn()) {
+            loginBtn.hidden = true;
+            authUser.hidden = false;
+            if (authEmail && auth.currentUser) authEmail.textContent = auth.currentUser.email || 'ログイン中';
+            if (postTrigger) postTrigger.style.visibility = '';
+        } else {
+            loginBtn.hidden = false;
+            authUser.hidden = true;
+            if (postTrigger) postTrigger.style.visibility = '';
         }
     }
 
@@ -440,6 +485,11 @@
     }
 
     function incrementLike(id) {
+        if (!isLoggedIn()) {
+            showToast('ログインすると高評価できます');
+            showLoginModal();
+            return;
+        }
         const item = thoughts.find(function (t) { return t.id === id; });
         if (!item) return;
         item.likes = (typeof item.likes === 'number' ? item.likes : 0) + 1;
@@ -457,6 +507,13 @@
         if (!item) return;
         currentDetailId = id;
         const likes = typeof item.likes === 'number' ? item.likes : 0;
+        var showActions = isLoggedIn();
+        var actionsHtml = showActions
+            ? '<div class="detail-actions">' +
+              '<button type="button" class="btn btn--outline" data-action="edit" data-id="' + _escape(item.id) + '">編集</button>' +
+              '<button type="button" class="btn danger" data-action="delete" data-id="' + _escape(item.id) + '">削除</button>' +
+              '</div>'
+            : '';
         modalBody.innerHTML =
             '<article class="detail-card">' +
             '<h2 class="detail-title">' + _escape(item.title) + '</h2>' +
@@ -471,10 +528,7 @@
             '<button type="button" class="btn detail-like-btn" data-action="like" data-id="' + _escape(item.id) + '" title="高評価">' +
             '<span class="like-icon" aria-hidden="true">👍</span><span class="detail-like-count">' + likes + '</span>' +
             '</button>' +
-            '<div class="detail-actions">' +
-            '<button type="button" class="btn btn--outline" data-action="edit" data-id="' + _escape(item.id) + '">編集</button>' +
-            '<button type="button" class="btn danger" data-action="delete" data-id="' + _escape(item.id) + '">削除</button>' +
-            '</div>' +
+            actionsHtml +
             '</div>' +
             '</article>';
         modalOverlay.classList.add('is-open');
@@ -484,17 +538,19 @@
         modalBody.querySelector('[data-action="like"]').onclick = function () {
             incrementLike(item.id);
         };
-        modalBody.querySelector('[data-action="edit"]').onclick = function () {
-            openPostModal(item.id);
-            closeModal(modalOverlay);
-        };
-        modalBody.querySelector('[data-action="delete"]').onclick = function () {
-            deletePost(item.id);
-            closeModal(modalOverlay);
-            renderFeed();
-            renderTagFilter();
-            showToast('削除しました');
-        };
+        if (showActions) {
+            modalBody.querySelector('[data-action="edit"]').onclick = function () {
+                openPostModal(item.id);
+                closeModal(modalOverlay);
+            };
+            modalBody.querySelector('[data-action="delete"]').onclick = function () {
+                deletePost(item.id);
+                closeModal(modalOverlay);
+                renderFeed();
+                renderTagFilter();
+                showToast('削除しました');
+            };
+        }
     }
 
     function closeModal(overlay) {
@@ -511,6 +567,11 @@
     }
 
     function openPostModal(editId) {
+        if (!isLoggedIn()) {
+            showToast('ログインすると投稿・編集できます');
+            showLoginModal();
+            return;
+        }
         editingId = editId || null;
         var titleEl = document.getElementById('post-title');
         var contentEl = document.getElementById('post-content');
@@ -556,6 +617,10 @@
     }
 
     function submitPost() {
+        if (!isLoggedIn()) {
+            showToast('ログインしてください');
+            return;
+        }
         var titleEl = document.getElementById('post-title');
         var contentEl = document.getElementById('post-content');
         var tagsEl = document.getElementById('post-tags');
@@ -657,7 +722,14 @@
     }
 
     // イベント
-    document.getElementById('post-trigger').addEventListener('click', function () { openPostModal(null); });
+    document.getElementById('post-trigger').addEventListener('click', function () {
+        if (!isLoggedIn()) {
+            showToast('ログインすると投稿できます');
+            showLoginModal();
+            return;
+        }
+        openPostModal(null);
+    });
     var editorBack = document.getElementById('editor-back');
     if (editorBack) editorBack.addEventListener('click', function () { closeEditorView(); editingId = null; });
     document.getElementById('close-detail').addEventListener('click', function () { closeModal(modalOverlay); });
@@ -690,7 +762,10 @@
 
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
-            if (viewEditor && !viewEditor.hidden) {
+            var authOverlay = document.getElementById('auth-overlay');
+            if (authOverlay && !authOverlay.hidden) {
+                closeLoginModal();
+            } else if (viewEditor && !viewEditor.hidden) {
                 closeEditorView();
                 editingId = null;
             } else if (modalOverlay.classList.contains('is-open')) {
@@ -698,6 +773,105 @@
             }
         }
     });
+
+    function showAuthError(msg) {
+        var el = document.getElementById('auth-error');
+        if (el) {
+            el.textContent = msg || '';
+            el.hidden = !msg;
+        }
+    }
+
+    function doSignIn(email, password) {
+        if (!auth) return;
+        showAuthError('');
+        auth.signInWithEmailAndPassword(email, password).then(function () {
+            closeLoginModal();
+            showToast('ログインしました');
+        }).catch(function (err) {
+            var msg = err.code === 'auth/user-not-found' ? 'このメールアドレスは登録されていません。' :
+                err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' ? 'パスワードが違います。' :
+                err.code === 'auth/invalid-email' ? 'メールアドレスの形式が正しくありません。' :
+                err.message || 'ログインに失敗しました。';
+            showAuthError(msg);
+        });
+    }
+
+    function doSignUp(email, password) {
+        if (!auth) return;
+        showAuthError('');
+        auth.createUserWithEmailAndPassword(email, password).then(function () {
+            closeLoginModal();
+            showToast('アカウントを作成しました');
+        }).catch(function (err) {
+            var msg = err.code === 'auth/email-already-in-use' ? 'このメールアドレスは既に使われています。' :
+                err.code === 'auth/weak-password' ? 'パスワードは6文字以上にしてください。' :
+                err.code === 'auth/invalid-email' ? 'メールアドレスの形式が正しくありません。' :
+                err.message || '登録に失敗しました。';
+            showAuthError(msg);
+        });
+    }
+
+    function doGoogleSignIn() {
+        if (!auth) return;
+        showAuthError('');
+        var provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).then(function () {
+            closeLoginModal();
+            showToast('ログインしました');
+        }).catch(function (err) {
+            if (err.code !== 'auth/popup-closed-by-user') {
+                showAuthError(err.message || 'Googleログインに失敗しました。');
+            }
+        });
+    }
+
+    if (auth) {
+        auth.onAuthStateChanged(function () {
+            updateAuthUI();
+        });
+    }
+    updateAuthUI();
+
+    var loginBtn = document.getElementById('login-btn');
+    if (loginBtn) loginBtn.addEventListener('click', showLoginModal);
+    var logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) logoutBtn.addEventListener('click', function () {
+        if (auth) auth.signOut();
+        showToast('ログアウトしました');
+    });
+    var authClose = document.getElementById('auth-close');
+    if (authClose) authClose.addEventListener('click', closeLoginModal);
+    var authOverlayEl = document.getElementById('auth-overlay');
+    if (authOverlayEl) authOverlayEl.addEventListener('click', function (e) {
+        if (e.target === authOverlayEl) closeLoginModal();
+    });
+    var authSigninBtn = document.getElementById('auth-signin-btn');
+    if (authSigninBtn) authSigninBtn.addEventListener('click', function () {
+        var email = (document.getElementById('auth-email-input').value || '').trim();
+        var password = (document.getElementById('auth-password-input').value || '');
+        if (!email || !password) {
+            showAuthError('メールアドレスとパスワードを入力してください。');
+            return;
+        }
+        doSignIn(email, password);
+    });
+    var authSignupBtn = document.getElementById('auth-signup-btn');
+    if (authSignupBtn) authSignupBtn.addEventListener('click', function () {
+        var email = (document.getElementById('auth-email-input').value || '').trim();
+        var password = (document.getElementById('auth-password-input').value || '');
+        if (!email || !password) {
+            showAuthError('メールアドレスとパスワードを入力してください。');
+            return;
+        }
+        if (password.length < 6) {
+            showAuthError('パスワードは6文字以上にしてください。');
+            return;
+        }
+        doSignUp(email, password);
+    });
+    var authGoogleBtn = document.getElementById('auth-google-btn');
+    if (authGoogleBtn) authGoogleBtn.addEventListener('click', doGoogleSignIn);
 
     initTheme();
     initRichEditor();

@@ -511,6 +511,159 @@ body {
     border-color: var(--text-sub);
 }
 
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+
+.auth-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auth-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auth-email {
+    font-size: 0.875rem;
+    color: var(--text-sub);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ========== ログインモーダル ========== */
+.auth-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg);
+    z-index: 100;
+    overflow-y: auto;
+    animation: overlayIn 0.25s ease-out;
+}
+
+.auth-modal {
+    position: relative;
+    max-width: 400px;
+    margin: 48px auto;
+    padding: 28px 24px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-hover);
+}
+
+.auth-modal-title {
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.auth-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-sub);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    transition: color 0.2s, background 0.2s;
+}
+
+.auth-close-btn:hover {
+    color: var(--text-main);
+    background: var(--bg-elevated);
+}
+
+.auth-form .auth-label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-sub);
+    margin-bottom: 4px;
+}
+
+.auth-form .auth-input {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    background: var(--bg-color);
+    color: var(--text-main);
+}
+
+.auth-form .auth-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.auth-error {
+    font-size: 0.875rem;
+    color: #c5221f;
+    margin: 0 0 12px;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.auth-buttons .btn {
+    flex: 1;
+}
+
+.auth-divider {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-sub);
+    margin: 16px 0;
+}
+
+.btn-google {
+    width: 100%;
+    padding: 10px 16px;
+    background: #fff;
+    color: #202124;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+[data-theme="dark"] .btn-google {
+    background: var(--bg-elevated);
+    color: var(--text-main);
+    border-color: var(--border);
+}
+
+.btn-google:hover {
+    background: var(--bg-elevated);
+    border-color: var(--text-sub);
+}
+
 /* ========== 投稿フォーム ========== */
 #post-title, #post-tags {
     width: 100%;

@@ -17,6 +17,10 @@
                 <h1 class="site-title">PhiloStream</h1>
                 <p class="site-desc">あなたの哲学を刻む</p>
                 <div class="header-actions">
+                    <span class="auth-status" id="auth-status">
+                        <button type="button" class="btn btn--outline btn-sm" id="login-btn">ログイン</button>
+                        <span class="auth-user" id="auth-user" hidden><span class="auth-email" id="auth-email"></span> <button type="button" class="btn btn--outline btn-sm" id="logout-btn">ログアウト</button></span>
+                    </span>
                     <button type="button" class="icon-btn" id="theme-toggle" title="テーマ切替" aria-label="テーマ切替">◐</button>
                     <button type="button" class="icon-btn" id="export-btn" title="エクスポート" aria-label="エクスポート">↓</button>
                     <label class="icon-btn file-label" title="インポート" aria-label="インポート">
@@ -118,11 +122,33 @@
         </div>
     </div>
 
+    <!-- ログインモーダル -->
+    <div class="overlay auth-overlay" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" hidden>
+        <div class="auth-modal">
+            <h2 id="auth-modal-title" class="auth-modal-title">ログイン</h2>
+            <button type="button" class="auth-close-btn" id="auth-close" aria-label="閉じる">&times;</button>
+            <div class="auth-form">
+                <label class="auth-label">メールアドレス</label>
+                <input type="email" id="auth-email-input" class="auth-input" placeholder="example@email.com" autocomplete="email">
+                <label class="auth-label">パスワード</label>
+                <input type="password" id="auth-password-input" class="auth-input" placeholder="6文字以上" autocomplete="current-password">
+                <p class="auth-error" id="auth-error" hidden></p>
+                <div class="auth-buttons">
+                    <button type="button" class="btn primary" id="auth-signin-btn">ログイン</button>
+                    <button type="button" class="btn btn--outline" id="auth-signup-btn">新規登録</button>
+                </div>
+                <div class="auth-divider">または</div>
+                <button type="button" class="btn btn-google" id="auth-google-btn">Google でログイン</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 削除確認トースト -->
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="script.js"></script>

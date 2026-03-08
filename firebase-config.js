@@ -5,9 +5,13 @@
  * 1. https://console.firebase.google.com/ でプロジェクトを作成
  * 2. 「プロジェクトの設定」→「一般」→「マイアプリ」で Web アプリを追加
  * 3. 表示された firebaseConfig をコピーして、下の firebaseConfig を置き換える
- * 4. 「Firestore Database」→「データベースを作成」（本番モードで開始後、ルールを下記のように変更可能）
+ * 4. 「Firestore Database」→「データベースを作成」
+ * 5. 「Authentication」→「始める」→「Sign-in method」で「メール/パスワード」と「Google」を有効化
  *
- * Firestore セキュリティルール（開発時は「ルール」タブで以下を設定）:
+ * Firestore セキュリティルール（「ルール」タブで、ログイン済みユーザーのみ読み書きする例）:
+ *   allow read, write: if request.auth != null;
+ *
+ * 開発用（誰でも読み書き）:
  *   rules_version = '2';
  *   service cloud.firestore {
  *     match /databases/{database}/documents {
