@@ -4,6 +4,8 @@
     const STORAGE_KEY = 'philo_posts';
     const THEME_KEY = 'philo_theme';
     const FIRESTORE_COLLECTION = 'posts';
+    const FIRESTORE_USERS_COLLECTION = 'users';
+    const PROFILE_ICON_OPTIONS = ['👤', '👨', '👩', '🧑', '🎭', '🦊', '🐱', '🐶', '🌟', '✨', '🎨', '📚', '🌸', '🍀'];
 
     var db = null;
     var auth = null;
@@ -172,6 +174,21 @@
             });
             return list;
         });
+    }
+
+    function loadUserProfile(uid) {
+        if (!db || !uid) return Promise.resolve({ icon: '👤' });
+        return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).get()
+            .then(function (doc) {
+                var d = doc.data();
+                return { icon: (d && d.icon) || '👤' };
+            })
+            .catch(function () { return { icon: '👤' }; });
+    }
+
+    function saveUserProfile(uid, data) {
+        if (!db || !uid) return Promise.resolve();
+        return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).set(data, { merge: true });
     }
 
     var editorState = { size: 'normal', font: 'sans', color: null };
@@ -611,7 +628,8 @@
             .sort(function (a, b) { return (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || ''); });
     }
 
-    function renderProfilePage() {
+    function renderProfilePage(profile) {
+        profile = profile || { icon: '👤' };
         var avatarEl = document.getElementById('profile-page-avatar');
         var nameEl = document.getElementById('profile-page-name');
         var followersEl = document.getElementById('profile-followers-count');
@@ -621,7 +639,7 @@
         if (!nameEl || !listEl) return;
         var user = auth && auth.currentUser ? auth.currentUser : null;
         var displayName = user ? getDisplayName(user) : 'ログイン中';
-        if (avatarEl) avatarEl.textContent = '👤';
+        if (avatarEl) avatarEl.textContent = profile.icon || '👤';
         nameEl.textContent = displayName;
         if (followersEl) followersEl.textContent = '0';
         if (followingEl) followingEl.textContent = '0';
@@ -668,7 +686,10 @@
 
     function openProfileView() {
         if (!isLoggedIn()) return;
-        renderProfilePage();
+        var uid = auth.currentUser.uid;
+        loadUserProfile(uid).then(function (profile) {
+            renderProfilePage(profile);
+        });
         if (viewFeed) viewFeed.hidden = true;
         if (viewEditor) viewEditor.hidden = true;
         if (viewProfile) {
@@ -676,6 +697,75 @@
             viewProfile.style.display = 'flex';
         }
         document.body.style.overflow = '';
+    }
+
+    function openProfileSettingsModal() {
+        if (!auth || !auth.currentUser) return;
+        var overlay = document.getElementById('profile-settings-overlay');
+        var nameInput = document.getElementById('profile-settings-display-name');
+        var pickerEl = document.getElementById('profile-icon-picker');
+        var errorEl = document.getElementById('profile-settings-error');
+        if (!overlay || !nameInput || !pickerEl) return;
+        nameInput.value = getDisplayName(auth.currentUser);
+        if (errorEl) errorEl.hidden = true;
+        pickerEl.innerHTML = '';
+        var uid = auth.currentUser.uid;
+        loadUserProfile(uid).then(function (profile) {
+            var currentIcon = profile.icon || '👤';
+            PROFILE_ICON_OPTIONS.forEach(function (emoji) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'profile-icon-option' + (emoji === currentIcon ? ' selected' : '');
+                btn.textContent = emoji;
+                btn.setAttribute('data-icon', emoji);
+                btn.addEventListener('click', function () {
+                    pickerEl.querySelectorAll('.profile-icon-option').forEach(function (b) { b.classList.remove('selected'); });
+                    btn.classList.add('selected');
+                });
+                pickerEl.appendChild(btn);
+            });
+        });
+        overlay.hidden = false;
+        overlay.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeProfileSettingsModal() {
+        var overlay = document.getElementById('profile-settings-overlay');
+        if (overlay) {
+            overlay.hidden = true;
+            overlay.style.display = 'none';
+        }
+        document.body.style.overflow = '';
+    }
+
+    function saveProfileSettings() {
+        if (!auth || !auth.currentUser) return;
+        var nameInput = document.getElementById('profile-settings-display-name');
+        var pickerEl = document.getElementById('profile-icon-picker');
+        var errorEl = document.getElementById('profile-settings-error');
+        var displayName = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
+        var selectedBtn = pickerEl && pickerEl.querySelector('.profile-icon-option.selected');
+        var icon = selectedBtn ? selectedBtn.getAttribute('data-icon') : '👤';
+        if (errorEl) errorEl.hidden = true;
+        var uid = auth.currentUser.uid;
+        var p = Promise.resolve();
+        if (displayName !== getDisplayName(auth.currentUser)) {
+            p = auth.currentUser.updateProfile({ displayName: displayName || '' });
+        }
+        p.then(function () {
+            return saveUserProfile(uid, { icon: icon });
+        }).then(function () {
+            closeProfileSettingsModal();
+            updateAuthUI();
+            loadUserProfile(uid).then(function (profile) { renderProfilePage(profile); });
+            showToast('プロフィールを更新しました');
+        }).catch(function (err) {
+            if (errorEl) {
+                errorEl.textContent = err.message || '保存に失敗しました';
+                errorEl.hidden = false;
+            }
+        });
     }
 
     function closeProfileView() {
@@ -889,8 +979,11 @@
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             var authOverlay = document.getElementById('auth-overlay');
+            var profileSettingsOverlay = document.getElementById('profile-settings-overlay');
             if (authOverlay && !authOverlay.hidden) {
                 closeLoginModal();
+            } else if (profileSettingsOverlay && !profileSettingsOverlay.hidden) {
+                closeProfileSettingsModal();
             } else if (viewProfile && !viewProfile.hidden) {
                 closeProfileView();
             } else if (viewEditor && !viewEditor.hidden) {
@@ -975,6 +1068,18 @@
     });
     var profileBackBtn = document.getElementById('profile-back-btn');
     if (profileBackBtn) profileBackBtn.addEventListener('click', closeProfileView);
+    var profileSettingsBtn = document.getElementById('profile-settings-btn');
+    if (profileSettingsBtn) profileSettingsBtn.addEventListener('click', openProfileSettingsModal);
+    var profileSettingsClose = document.getElementById('profile-settings-close');
+    if (profileSettingsClose) profileSettingsClose.addEventListener('click', closeProfileSettingsModal);
+    var profileSettingsCancel = document.getElementById('profile-settings-cancel');
+    if (profileSettingsCancel) profileSettingsCancel.addEventListener('click', closeProfileSettingsModal);
+    var profileSettingsSave = document.getElementById('profile-settings-save');
+    if (profileSettingsSave) profileSettingsSave.addEventListener('click', saveProfileSettings);
+    var profileSettingsOverlayEl = document.getElementById('profile-settings-overlay');
+    if (profileSettingsOverlayEl) profileSettingsOverlayEl.addEventListener('click', function (e) {
+        if (e.target === profileSettingsOverlayEl) closeProfileSettingsModal();
+    });
     var profileNicknameBtn = document.getElementById('profile-nickname-btn');
     if (profileNicknameBtn) profileNicknameBtn.addEventListener('click', function () {
         if (!auth || !auth.currentUser) return;

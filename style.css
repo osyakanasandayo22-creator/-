@@ -714,6 +714,85 @@ body {
     margin: 0;
 }
 
+.profile-settings-btn {
+    margin-top: 20px;
+}
+
+/* プロフィール設定モーダル */
+.profile-settings-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg);
+    z-index: 100;
+    overflow-y: auto;
+    animation: overlayIn 0.25s ease-out;
+}
+
+.profile-settings-form .auth-label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+}
+
+.profile-icon-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.profile-icon-option {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    background: var(--bg-elevated);
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.profile-icon-option:hover {
+    background: var(--border);
+}
+
+.profile-icon-option.selected {
+    border-color: var(--accent);
+    background: var(--bg-color);
+}
+
+.profile-settings-form .auth-input {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    background: var(--bg-color);
+    color: var(--text-main);
+}
+
+.profile-settings-error {
+    font-size: 0.875rem;
+    color: #c5221f;
+    margin: 0 0 12px;
+}
+
+.profile-settings-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.profile-settings-buttons .btn {
+    flex: 1;
+}
+
 .auth-email {
     font-size: 0.875rem;
     color: var(--text-sub);

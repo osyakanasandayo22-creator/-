@@ -12,14 +12,8 @@
  *   allow read, write: if request.auth != null;
  *
  * 開発用（誰でも読み書き）:
- *   rules_version = '2';
- *   service cloud.firestore {
- *     match /databases/{database}/documents {
- *       match /posts/{postId} {
- *         allow read, write: if true;  // 開発用。本番では認証条件を追加すること
- *       }
- *     }
- *   }
+ *   match /posts/{postId} { allow read, write: if true; }
+ *   match /users/{userId} { allow read, write: if request.auth != null && request.auth.uid == userId; }  // プロフィール（アイコン）用
  */
 var firebaseConfig = {
     apiKey: "AIzaSyAzzkgrAor-T8SlObNHj7Ukkkns3_kcnbs",

@@ -76,6 +76,7 @@
                     <span class="profile-stat"><strong id="profile-followers-count">0</strong> フォロワー</span>
                     <span class="profile-stat"><strong id="profile-following-count">0</strong> フォロー</span>
                 </div>
+                <button type="button" class="btn btn--outline profile-settings-btn" id="profile-settings-btn">プロフィールを設定</button>
             </div>
             <section class="profile-posts-section" aria-labelledby="profile-posts-title">
                 <h3 id="profile-posts-title" class="profile-posts-title">過去の投稿</h3>
@@ -174,6 +175,27 @@
                 </div>
                 <div class="auth-divider">または</div>
                 <button type="button" class="btn btn-google" id="auth-google-btn">Google でログイン</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- プロフィール設定モーダル -->
+    <div class="overlay profile-settings-overlay" id="profile-settings-overlay" role="dialog" aria-modal="true" aria-labelledby="profile-settings-title" hidden>
+        <div class="auth-modal profile-settings-modal">
+            <h2 id="profile-settings-title" class="auth-modal-title">プロフィールを設定</h2>
+            <button type="button" class="auth-close-btn" id="profile-settings-close" aria-label="閉じる">&times;</button>
+            <div class="profile-settings-form">
+                <label class="auth-label">アイコン</label>
+                <div class="profile-icon-picker" id="profile-icon-picker" role="group" aria-label="アイコンを選択">
+                    <!-- script でアイコン候補を挿入 -->
+                </div>
+                <label class="auth-label">表示名</label>
+                <input type="text" id="profile-settings-display-name" class="auth-input" placeholder="表示名" maxlength="30" autocomplete="off">
+                <p class="profile-settings-error" id="profile-settings-error" hidden></p>
+                <div class="profile-settings-buttons">
+                    <button type="button" class="btn primary" id="profile-settings-save">保存</button>
+                    <button type="button" class="btn btn--outline" id="profile-settings-cancel">キャンセル</button>
+                </div>
             </div>
         </div>
     </div>
