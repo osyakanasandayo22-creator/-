@@ -1011,6 +1011,7 @@
                 replyCountBadge.textContent = sorted.length ? '(' + sorted.length + ')' : '';
                 replyCountBadge.style.visibility = sorted.length ? 'visible' : 'hidden';
             }
+            var currentUid = auth && auth.currentUser ? auth.currentUser.uid : '';
             replyListEl.innerHTML = sorted.map(function (r) {
                 var name = (r.authorDisplayName || '匿名');
                 var date = r.createdAt ? formatDate(r.createdAt) : '';
@@ -1018,6 +1019,10 @@
                 var replyLiked = isLikedByMeReply(r);
                 var likeImgSrc = getLikeIconSrc(replyLiked);
                 var replyId = (r.id || '').toString();
+                var isMine = currentUid && r.authorId === currentUid;
+                var deleteBtnHtml = isMine
+                    ? '<button type="button" class="btn btn-sm danger detail-reply-delete-btn" data-action="reply-delete" data-post-id="' + _escape(item.id) + '" data-reply-id="' + _escape(replyId) + '" title="返信を削除">削除</button>'
+                    : '';
                 return '<div class="detail-reply-item" role="listitem" data-reply-id="' + _escape(replyId) + '">' +
                     '<div class="detail-reply-item-header">' +
                     '<span class="detail-reply-item-author">' + _escape(name) + '</span>' +
@@ -1025,9 +1030,12 @@
                     '</div>' +
                     '<div class="detail-reply-item-body">' + _escape(r.body || '') + '</div>' +
                     '<div class="detail-reply-item-footer">' +
+                    '<div class="detail-reply-item-actions">' +
+                    deleteBtnHtml +
                     '<button type="button" class="btn detail-reply-like-btn" data-action="reply-like" data-post-id="' + _escape(item.id) + '" data-reply-id="' + _escape(replyId) + '" title="高評価">' +
                     '<img class="like-icon" src="' + _escape(likeImgSrc) + '" alt=""><span class="detail-reply-like-count">' + replyLikes + '</span>' +
                     '</button>' +
+                    '</div>' +
                     '</div>' +
                     '</div>';
             }).join('');
@@ -1036,6 +1044,24 @@
                     var pid = btn.getAttribute('data-post-id');
                     var rid = btn.getAttribute('data-reply-id');
                     if (pid && rid) incrementReplyLike(pid, rid);
+                };
+            });
+            replyListEl.querySelectorAll('.detail-reply-delete-btn').forEach(function (btn) {
+                btn.onclick = function () {
+                    var pid = btn.getAttribute('data-post-id');
+                    var rid = btn.getAttribute('data-reply-id');
+                    if (!pid || !rid) return;
+                    var titleEl = document.getElementById('delete-confirm-title');
+                    var descEl = document.getElementById('delete-confirm-desc');
+                    if (titleEl) titleEl.textContent = '返信を削除しますか？';
+                    if (descEl) descEl.textContent = 'この返信を削除します。取り消せません。';
+                    showDeleteConfirm(function () {
+                        deleteReply(pid, rid);
+                        renderReplyList(item.replies);
+                        showToast('返信を削除しました');
+                        if (titleEl) titleEl.textContent = '投稿を削除しますか？';
+                        if (descEl) descEl.textContent = 'この操作は取り消せません。投稿とその返信がすべて削除されます。';
+                    });
                 };
             });
         }
@@ -1218,6 +1244,10 @@
 
     function closeDeleteConfirm() {
         pendingDeleteCallback = null;
+        var titleEl = document.getElementById('delete-confirm-title');
+        var descEl = document.getElementById('delete-confirm-desc');
+        if (titleEl) titleEl.textContent = '投稿を削除しますか？';
+        if (descEl) descEl.textContent = 'この操作は取り消せません。投稿とその返信がすべて削除されます。';
         if (deleteConfirmOverlay) deleteConfirmOverlay.hidden = true;
     }
 
@@ -1809,6 +1839,25 @@
             });
         }
         save();
+    }
+
+    function deleteReply(postId, replyId) {
+        var post = thoughts.find(function (t) { return t.id === postId; });
+        if (!post) return;
+        if (auth && auth.currentUser) {
+            var reply = (post.replies || []).find(function (r) { return (r.id || '') === replyId; });
+            if (reply && reply.authorId !== auth.currentUser.uid) {
+                showToast('この返信は削除できません');
+                return;
+            }
+        }
+        if (post.replies) {
+            post.replies = post.replies.filter(function (r) { return (r.id || '') !== replyId; });
+        }
+        if (db) {
+            db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').doc(replyId).delete()
+                .catch(function (err) { console.warn('Firestore reply delete failed:', err); });
+        }
     }
 
     function submitPost() {

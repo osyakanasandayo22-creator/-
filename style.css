@@ -844,6 +844,18 @@ textarea,
     border-top: 1px solid var(--border);
 }
 
+.detail-reply-item-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.detail-reply-delete-btn {
+    padding: 4px 10px;
+    font-size: 0.8125rem;
+}
+
 .detail-reply-like-btn {
     display: inline-flex;
     align-items: center;
