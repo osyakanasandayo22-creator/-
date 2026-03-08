@@ -696,6 +696,44 @@ body {
     word-break: break-word;
 }
 
+.detail-reply-item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+
+.detail-reply-like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 0.8125rem;
+    color: var(--text-sub);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.detail-reply-like-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.detail-reply-like-btn .like-icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+}
+
+.detail-reply-like-btn .like-icon.like-icon--pop {
+    animation: likePop 0.35s ease;
+}
+
 .detail-reply-form {
     display: flex;
     flex-direction: column;

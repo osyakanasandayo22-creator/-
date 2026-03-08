@@ -136,6 +136,11 @@
         return thought.likedBy.indexOf(auth.currentUser.uid) >= 0;
     }
 
+    function isLikedByMeReply(reply) {
+        if (!auth || !auth.currentUser || !reply.likedBy) return false;
+        return reply.likedBy.indexOf(auth.currentUser.uid) >= 0;
+    }
+
     function getLikeIconSrc(liked) {
         var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         if (isDark) return liked ? 'images/テーマ黒用いいね済み.png' : 'images/白色いいね通常時.png';
@@ -743,7 +748,6 @@
             '</article>' +
             '<section class="detail-reply-section" aria-labelledby="detail-reply-heading">' +
             '<h3 id="detail-reply-heading" class="detail-reply-heading">返信 <span class="detail-reply-count-badge" id="detail-reply-count-badge"></span></h3>' +
-            '<div class="detail-reply-list" id="detail-reply-list" role="list"></div>' +
             (isLoggedIn()
                 ? '<form class="detail-reply-form" id="detail-reply-form" data-post-id="' + _escape(item.id) + '">' +
                   '<textarea class="detail-reply-textarea" name="replyBody" placeholder="返信を書く..." rows="3" maxlength="500"></textarea>' +
@@ -753,6 +757,7 @@
                   '</div>' +
                   '</form>'
                 : '<p class="detail-reply-login-hint">ログインすると返信できます。</p>') +
+            '<div class="detail-reply-list" id="detail-reply-list" role="list"></div>' +
             '</section>';
         modalOverlay.classList.add('is-open');
         modalOverlay.style.display = 'block';
@@ -822,6 +827,9 @@
             if (!replyListEl) return;
             var list = Array.isArray(replies) ? replies : [];
             var sorted = list.slice().sort(function (a, b) {
+                var likesA = typeof a.likes === 'number' ? a.likes : 0;
+                var likesB = typeof b.likes === 'number' ? b.likes : 0;
+                if (likesB !== likesA) return likesB - likesA;
                 return (a.createdAt || '').localeCompare(b.createdAt || '');
             });
             if (replyCountBadge) {
@@ -831,14 +839,30 @@
             replyListEl.innerHTML = sorted.map(function (r) {
                 var name = (r.authorDisplayName || '匿名');
                 var date = r.createdAt ? formatDate(r.createdAt) : '';
-                return '<div class="detail-reply-item" role="listitem">' +
+                var replyLikes = typeof r.likes === 'number' ? r.likes : 0;
+                var replyLiked = isLikedByMeReply(r);
+                var likeImgSrc = getLikeIconSrc(replyLiked);
+                var replyId = (r.id || '').toString();
+                return '<div class="detail-reply-item" role="listitem" data-reply-id="' + _escape(replyId) + '">' +
                     '<div class="detail-reply-item-header">' +
                     '<span class="detail-reply-item-author">' + _escape(name) + '</span>' +
                     '<time class="detail-reply-item-date" datetime="' + _escape(r.createdAt || '') + '">' + _escape(date) + '</time>' +
                     '</div>' +
                     '<div class="detail-reply-item-body">' + _escape(r.body || '') + '</div>' +
+                    '<div class="detail-reply-item-footer">' +
+                    '<button type="button" class="btn detail-reply-like-btn" data-action="reply-like" data-post-id="' + _escape(item.id) + '" data-reply-id="' + _escape(replyId) + '" title="高評価">' +
+                    '<img class="like-icon" src="' + _escape(likeImgSrc) + '" alt=""><span class="detail-reply-like-count">' + replyLikes + '</span>' +
+                    '</button>' +
+                    '</div>' +
                     '</div>';
             }).join('');
+            replyListEl.querySelectorAll('.detail-reply-like-btn').forEach(function (btn) {
+                btn.onclick = function () {
+                    var pid = btn.getAttribute('data-post-id');
+                    var rid = btn.getAttribute('data-reply-id');
+                    if (pid && rid) incrementReplyLike(pid, rid);
+                };
+            });
         }
         renderReplyList(item.replies);
         if (db) {
@@ -852,7 +876,9 @@
                             body: data.body,
                             authorId: data.authorId,
                             authorDisplayName: data.authorDisplayName || '匿名',
-                            createdAt: data.createdAt
+                            createdAt: data.createdAt,
+                            likes: typeof data.likes === 'number' ? data.likes : 0,
+                            likedBy: Array.isArray(data.likedBy) ? data.likedBy : []
                         };
                     });
                     item.replies = list;
@@ -881,7 +907,9 @@
                     showToast('返信内容を入力してください');
                     return;
                 }
-                submitReply(item.id, body);
+                submitReply(item.id, body, function () {
+                    renderReplyList(item.replies);
+                });
                 replyTextarea.value = '';
                 updateReplyCount();
                 showToast('返信を送信しました');
@@ -890,27 +918,78 @@
         }
     }
 
-    function submitReply(postId, body) {
+    function submitReply(postId, body, onAdded) {
         if (!isLoggedIn() || !auth || !auth.currentUser) return;
         var uid = auth.currentUser.uid;
         var displayName = getDisplayName(auth.currentUser);
+        var newReply = {
+            body: body,
+            authorId: uid,
+            authorDisplayName: displayName,
+            createdAt: new Date().toISOString(),
+            likes: 0,
+            likedBy: []
+        };
         if (db) {
             db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').add({
                 body: body,
                 authorId: uid,
                 authorDisplayName: displayName,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                likes: 0,
+                likedBy: []
+            }).then(function (ref) {
+                if (ref && ref.id) {
+                    newReply.id = ref.id;
+                    if (typeof onAdded === 'function') onAdded();
+                }
             }).catch(function (err) { console.warn('Reply save failed', err); });
+        } else {
+            newReply.id = _uid();
+            if (typeof onAdded === 'function') onAdded();
         }
         var post = thoughts.find(function (t) { return t.id === postId; });
         if (post) {
             if (!post.replies) post.replies = [];
-            post.replies.push({
-                body: body,
-                authorId: uid,
-                authorDisplayName: displayName,
-                createdAt: new Date().toISOString()
-            });
+            post.replies.push(newReply);
+        }
+    }
+
+    function incrementReplyLike(postId, replyId) {
+        if (!isLoggedIn() || !auth || !auth.currentUser) {
+            showToast('ログインすると高評価できます');
+            showLoginModal();
+            return;
+        }
+        if (!replyId) return;
+        var post = thoughts.find(function (t) { return t.id === postId; });
+        if (!post || !Array.isArray(post.replies)) return;
+        var reply = post.replies.find(function (r) { return (r.id || '') === replyId; });
+        if (!reply) return;
+        if (!Array.isArray(reply.likedBy)) reply.likedBy = [];
+        var uid = auth.currentUser.uid;
+        var idx = reply.likedBy.indexOf(uid);
+        if (idx < 0) {
+            reply.likedBy.push(uid);
+            reply.likes = (typeof reply.likes === 'number' ? reply.likes : 0) + 1;
+            showToast('高評価しました');
+        } else {
+            reply.likedBy.splice(idx, 1);
+            reply.likes = Math.max(0, (typeof reply.likes === 'number' ? reply.likes : 0) - 1);
+            showToast('高評価を解除しました');
+        }
+        if (db) {
+            db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').doc(replyId).set({
+                body: reply.body,
+                authorId: reply.authorId,
+                authorDisplayName: reply.authorDisplayName,
+                createdAt: reply.createdAt,
+                likes: reply.likes,
+                likedBy: reply.likedBy
+            }, { merge: true }).catch(function (err) { console.warn('Reply like update failed', err); });
+        }
+        if (modalOverlay.classList.contains('is-open') && currentDetailId === postId) {
+            showDetail(postId);
         }
     }
 
