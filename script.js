@@ -1087,6 +1087,8 @@
         if (viewArticle) {
             viewArticle.hidden = false;
             viewArticle.style.display = 'flex';
+            var articleMain = viewArticle.querySelector('.article-view-main');
+            if (articleMain) articleMain.scrollTop = 0;
         }
         document.body.style.overflow = '';
 
