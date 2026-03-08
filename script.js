@@ -742,7 +742,8 @@
             '</div>' +
             '</article>' +
             '<section class="detail-reply-section" aria-labelledby="detail-reply-heading">' +
-            '<h3 id="detail-reply-heading" class="detail-reply-heading">返信</h3>' +
+            '<h3 id="detail-reply-heading" class="detail-reply-heading">返信 <span class="detail-reply-count-badge" id="detail-reply-count-badge"></span></h3>' +
+            '<div class="detail-reply-list" id="detail-reply-list" role="list"></div>' +
             (isLoggedIn()
                 ? '<form class="detail-reply-form" id="detail-reply-form" data-post-id="' + _escape(item.id) + '">' +
                   '<textarea class="detail-reply-textarea" name="replyBody" placeholder="返信を書く..." rows="3" maxlength="500"></textarea>' +
@@ -815,6 +816,51 @@
             };
         }
 
+        var replyListEl = modalBody.querySelector('#detail-reply-list');
+        var replyCountBadge = modalBody.querySelector('#detail-reply-count-badge');
+        function renderReplyList(replies) {
+            if (!replyListEl) return;
+            var list = Array.isArray(replies) ? replies : [];
+            var sorted = list.slice().sort(function (a, b) {
+                return (a.createdAt || '').localeCompare(b.createdAt || '');
+            });
+            if (replyCountBadge) {
+                replyCountBadge.textContent = sorted.length ? '(' + sorted.length + ')' : '';
+                replyCountBadge.style.visibility = sorted.length ? 'visible' : 'hidden';
+            }
+            replyListEl.innerHTML = sorted.map(function (r) {
+                var name = (r.authorDisplayName || '匿名');
+                var date = r.createdAt ? formatDate(r.createdAt) : '';
+                return '<div class="detail-reply-item" role="listitem">' +
+                    '<div class="detail-reply-item-header">' +
+                    '<span class="detail-reply-item-author">' + _escape(name) + '</span>' +
+                    '<time class="detail-reply-item-date" datetime="' + _escape(r.createdAt || '') + '">' + _escape(date) + '</time>' +
+                    '</div>' +
+                    '<div class="detail-reply-item-body">' + _escape(r.body || '') + '</div>' +
+                    '</div>';
+            }).join('');
+        }
+        renderReplyList(item.replies);
+        if (db) {
+            db.collection(FIRESTORE_COLLECTION).doc(item.id).collection('replies').orderBy('createdAt', 'asc').get()
+                .then(function (snap) {
+                    if (!snap || !snap.docs || !replyListEl) return;
+                    var list = snap.docs.map(function (d) {
+                        var data = d.data();
+                        return {
+                            id: d.id,
+                            body: data.body,
+                            authorId: data.authorId,
+                            authorDisplayName: data.authorDisplayName || '匿名',
+                            createdAt: data.createdAt
+                        };
+                    });
+                    item.replies = list;
+                    renderReplyList(item.replies);
+                })
+                .catch(function (err) { console.warn('Replies load failed', err); });
+        }
+
         var replyForm = modalBody.querySelector('#detail-reply-form');
         if (replyForm) {
             var replyTextarea = replyForm.querySelector('.detail-reply-textarea');
@@ -839,6 +885,7 @@
                 replyTextarea.value = '';
                 updateReplyCount();
                 showToast('返信を送信しました');
+                renderReplyList(item.replies);
             });
         }
     }
