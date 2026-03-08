@@ -15,6 +15,9 @@
     const DISPLAY_NAME_MAX_LENGTH = 20;
     const BIO_MAX_LENGTH = 160;
     const VERIFIED_FOLLOWERS_THRESHOLD = 500;
+    /** 名著：いいねがこの数以上の投稿を人気順で表示 */
+    const MASTERPIECE_MIN_LIKES = 2;
+    const MASTERPIECE_MAX = 10;
 
     var db = null;
     var auth = null;
@@ -779,6 +782,49 @@
         popular.forEach(function (item) { popularList.appendChild(makeTagItem(item)); });
     }
 
+    /** 名著：いいね数が閾値以上の投稿を人気順で最大 MASTERPIECE_MAX 件返す */
+    function getMasterpieces() {
+        return thoughts
+            .filter(function (t) { return (typeof t.likes === 'number' ? t.likes : 0) >= MASTERPIECE_MIN_LIKES; })
+            .sort(function (a, b) {
+                var la = typeof a.likes === 'number' ? a.likes : 0;
+                var lb = typeof b.likes === 'number' ? b.likes : 0;
+                if (lb !== la) return lb - la;
+                return (b.updatedAt || '') > (a.updatedAt || '') ? 1 : -1;
+            })
+            .slice(0, MASTERPIECE_MAX);
+    }
+
+    /** 右サイドバーに名著一覧を描画 */
+    function renderMasterpieceSidebar() {
+        var listEl = document.getElementById('masterpiece-list');
+        if (!listEl) return;
+        var items = getMasterpieces();
+        listEl.innerHTML = '';
+        if (items.length === 0) {
+            var empty = document.createElement('li');
+            empty.className = 'feed-sidebar-masterpiece-empty';
+            empty.textContent = 'まだ名著はありません。いいねを送って名文を育てましょう。';
+            listEl.appendChild(empty);
+            return;
+        }
+        items.forEach(function (thought) {
+            var li = document.createElement('li');
+            li.className = 'feed-sidebar-masterpiece-item';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'feed-sidebar-masterpiece-btn';
+            var likes = typeof thought.likes === 'number' ? thought.likes : 0;
+            var title = (thought.title || '').trim() || '（無題）';
+            btn.innerHTML = '<span class="feed-sidebar-masterpiece-title">' + _escape(title) + '</span>' +
+                '<span class="feed-sidebar-masterpiece-meta">♥ ' + likes + ' いいね</span>';
+            btn.title = title + ' を読む';
+            btn.addEventListener('click', function () { showDetail(thought.id); });
+            li.appendChild(btn);
+            listEl.appendChild(li);
+        });
+    }
+
     function getFilteredThoughts() {
         const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : '';
         const tagVal = (filterTag && filterTag.value) ? filterTag.value : '';
@@ -833,6 +879,7 @@
     function renderFeed() {
         renderPopularTagsSection();
         renderFeedSidebar();
+        renderMasterpieceSidebar();
         var list = getFilteredThoughts();
         var timeline = feedTimeline || feed;
         var cards = timeline.querySelectorAll('.card');

@@ -230,6 +230,64 @@ textarea,
     display: none;
 }
 
+/* ---------- 右サイドバー（名著） ---------- */
+.feed-sidebar--right {
+    display: none;
+}
+.feed-sidebar-desc {
+    font-size: 0.8125rem;
+    color: var(--text-sub);
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+.feed-sidebar-masterpiece-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.feed-sidebar-masterpiece-item {
+    margin: 0 0 8px 0;
+    padding: 0;
+}
+.feed-sidebar-masterpiece-btn {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg-elevated);
+    color: var(--text-main);
+    font-size: 0.875rem;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1.35;
+}
+.feed-sidebar-masterpiece-btn:hover {
+    background: var(--border);
+    color: var(--accent);
+}
+.feed-sidebar-masterpiece-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.feed-sidebar-masterpiece-title {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+}
+.feed-sidebar-masterpiece-meta {
+    font-size: 0.75rem;
+    color: var(--text-sub);
+}
+.feed-sidebar-masterpiece-empty {
+    font-size: 0.875rem;
+    color: var(--text-sub);
+    margin: 0;
+    padding: 12px 0;
+}
+
 @media (min-width: 1024px) {
     .feed {
         max-width: none;
@@ -312,6 +370,22 @@ textarea,
         max-width: 1200px;
         margin: 32px auto 80px;
         padding: 0 40px 80px;
+    }
+    .feed-sidebar--right {
+        display: block;
+        flex-shrink: 0;
+        width: 280px;
+        position: sticky;
+        top: calc(80px + env(safe-area-inset-top, 0px));
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        padding: 24px 40px 32px 24px;
+        border-left: 1px solid var(--border);
+        background: var(--bg-color);
+    }
+    .feed-sidebar--right .feed-sidebar-inner {
+        padding-left: 0;
+        padding-right: 0;
     }
 }
 
