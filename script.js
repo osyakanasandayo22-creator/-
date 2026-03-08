@@ -955,6 +955,19 @@
         }
     }
 
+    var replyLikeUpdating = false;
+    function updateReplyLikeInDOM(replyId, likes, liked) {
+        var items = modalBody.querySelectorAll('.detail-reply-item[data-reply-id]');
+        var item = null;
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].getAttribute('data-reply-id') === replyId) { item = items[i]; break; }
+        }
+        if (!item) return;
+        var countEl = item.querySelector('.detail-reply-like-count');
+        var imgEl = item.querySelector('.detail-reply-like-btn .like-icon');
+        if (countEl) countEl.textContent = String(likes);
+        if (imgEl) imgEl.src = getLikeIconSrc(liked);
+    }
     function incrementReplyLike(postId, replyId) {
         if (!isLoggedIn() || !auth || !auth.currentUser) {
             showToast('ログインすると高評価できます');
@@ -962,6 +975,7 @@
             return;
         }
         if (!replyId) return;
+        if (replyLikeUpdating) return;
         var post = thoughts.find(function (t) { return t.id === postId; });
         if (!post || !Array.isArray(post.replies)) return;
         var reply = post.replies.find(function (r) { return (r.id || '') === replyId; });
@@ -978,7 +992,16 @@
             reply.likes = Math.max(0, (typeof reply.likes === 'number' ? reply.likes : 0) - 1);
             showToast('高評価を解除しました');
         }
+        var newLiked = isLikedByMeReply(reply);
+        updateReplyLikeInDOM(replyId, reply.likes, newLiked);
+        function refreshModal() {
+            if (modalOverlay.classList.contains('is-open') && currentDetailId === postId) {
+                showDetail(postId);
+            }
+            replyLikeUpdating = false;
+        }
         if (db) {
+            replyLikeUpdating = true;
             db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').doc(replyId).set({
                 body: reply.body,
                 authorId: reply.authorId,
@@ -986,10 +1009,23 @@
                 createdAt: reply.createdAt,
                 likes: reply.likes,
                 likedBy: reply.likedBy
-            }, { merge: true }).catch(function (err) { console.warn('Reply like update failed', err); });
-        }
-        if (modalOverlay.classList.contains('is-open') && currentDetailId === postId) {
-            showDetail(postId);
+            }, { merge: true })
+                .then(function () { replyLikeUpdating = false; })
+                .catch(function (err) {
+                    console.warn('Reply like update failed', err);
+                    if (idx < 0) {
+                        var i = reply.likedBy.indexOf(uid);
+                        if (i >= 0) reply.likedBy.splice(i, 1);
+                        reply.likes = Math.max(0, (reply.likes || 0) - 1);
+                    } else {
+                        reply.likedBy.push(uid);
+                        reply.likes = (reply.likes || 0) + 1;
+                    }
+                    replyLikeUpdating = false;
+                    refreshModal();
+                });
+        } else {
+            refreshModal();
         }
     }
 
