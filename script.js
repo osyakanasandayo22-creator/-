@@ -13,6 +13,7 @@
     ];
     const TITLE_MAX_LENGTH = 50;
     const DISPLAY_NAME_MAX_LENGTH = 20;
+    const BIO_MAX_LENGTH = 160;
 
     var db = null;
     var auth = null;
@@ -239,7 +240,7 @@
     }
 
     function loadUserProfile(uid) {
-        if (!db || !uid) return Promise.resolve({ icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 });
+        if (!db || !uid) return Promise.resolve({ icon: '👤', iconBg: '', displayName: '', bio: '', following: [], followers: [], followersCount: 0 });
         return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).get()
             .then(function (doc) {
                 var d = doc.data();
@@ -247,12 +248,13 @@
                     icon: (d && d.icon) || '👤',
                     iconBg: (d && d.iconBg) || '',
                     displayName: (d && d.displayName) || '',
+                    bio: (d && d.bio) || '',
                     following: Array.isArray(d && d.following) ? d.following : [],
                     followers: Array.isArray(d && d.followers) ? d.followers : [],
                     followersCount: typeof (d && d.followersCount) === 'number' ? d.followersCount : 0
                 };
             })
-            .catch(function () { return { icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 }; });
+            .catch(function () { return { icon: '👤', iconBg: '', displayName: '', bio: '', following: [], followers: [], followersCount: 0 }; });
     }
 
     function loadMyFollowing() {
@@ -328,6 +330,7 @@
         if (data.icon !== undefined) payload.icon = data.icon;
         if (data.iconBg !== undefined) payload.iconBg = data.iconBg;
         if (data.displayName !== undefined) payload.displayName = data.displayName;
+        if (data.bio !== undefined) payload.bio = data.bio;
         if (Object.keys(payload).length === 0) return Promise.resolve();
         return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).set(payload, { merge: true });
     }
@@ -1276,7 +1279,7 @@
     function renderProfilePage(profile, opts) {
         opts = opts || {};
         if (!profile) {
-            profile = lastRenderedProfile || { icon: '👤', iconBg: '', displayName: '', following: [], followers: [], followersCount: 0 };
+            profile = lastRenderedProfile || { icon: '👤', iconBg: '', displayName: '', bio: '', following: [], followers: [], followersCount: 0 };
             opts = lastRenderedProfileOpts || {};
         } else {
             lastRenderedProfile = profile;
@@ -1284,6 +1287,7 @@
         }
         var avatarWrap = document.getElementById('profile-page-avatar');
         var nameEl = document.getElementById('profile-page-name');
+        var bioEl = document.getElementById('profile-page-bio');
         var followersEl = document.getElementById('profile-followers-count');
         var followingEl = document.getElementById('profile-following-count');
         var listEl = document.getElementById('profile-posts-list');
@@ -1308,6 +1312,11 @@
 
         if (avatarWrap) avatarWrap.outerHTML = getAuthorIconHtml(profile.icon, profile.iconBg, displayName, 'profile-page-avatar');
         nameEl.textContent = displayName;
+        if (bioEl) {
+            var bioText = (profile.bio || '').trim();
+            bioEl.textContent = bioText;
+            bioEl.hidden = !bioText;
+        }
         if (followersEl) followersEl.textContent = String(followersCount);
         if (followingEl) followingEl.textContent = String(isOtherUser ? followingCount : (profile.following && profile.following.length) || 0);
 
@@ -1533,12 +1542,14 @@
         if (!auth || !auth.currentUser) return;
         var overlay = document.getElementById('profile-settings-overlay');
         var nameInput = document.getElementById('profile-settings-display-name');
+        var bioInput = document.getElementById('profile-settings-bio');
         var pickerEl = document.getElementById('profile-icon-picker');
         var bgPickerEl = document.getElementById('profile-icon-bg-picker');
         var errorEl = document.getElementById('profile-settings-error');
         if (!overlay || !nameInput || !pickerEl) return;
         nameInput.value = getDisplayName(auth.currentUser);
         updateDisplayNameCount();
+        if (bioInput) updateBioCount();
         if (errorEl) errorEl.hidden = true;
         pickerEl.innerHTML = '';
         if (bgPickerEl) bgPickerEl.innerHTML = '';
@@ -1546,6 +1557,11 @@
         loadUserProfile(uid).then(function (profile) {
             var currentIcon = profile.icon || '👤';
             var currentBg = profile.iconBg || '';
+            if (bioInput) {
+                bioInput.value = profile.bio || '';
+                updateBioCount();
+                bioInput.oninput = updateBioCount;
+            }
             PROFILE_ICON_OPTIONS.forEach(function (emoji) {
                 var btn = document.createElement('button');
                 btn.type = 'button';
@@ -1630,8 +1646,17 @@
         if (displayName !== getDisplayName(auth.currentUser)) {
             p = auth.currentUser.updateProfile({ displayName: displayName || '' });
         }
+        var bioInput = document.getElementById('profile-settings-bio');
+        var bio = (bioInput && bioInput.value) ? bioInput.value.trim() : '';
+        if (bio.length > BIO_MAX_LENGTH) {
+            if (errorEl) {
+                errorEl.textContent = '自己紹介は' + BIO_MAX_LENGTH + '文字以内で入力してください';
+                errorEl.hidden = false;
+            }
+            return;
+        }
         p.then(function () {
-            return saveUserProfile(uid, { icon: icon, iconBg: iconBg, displayName: displayName || getDisplayName(auth.currentUser) });
+            return saveUserProfile(uid, { icon: icon, iconBg: iconBg, displayName: displayName || getDisplayName(auth.currentUser), bio: bio });
         }).then(function () {
             thoughts.forEach(function (t) {
                 if (t.authorId === uid) {
@@ -1824,6 +1849,12 @@
         var el = document.getElementById('profile-settings-display-name');
         var countEl = document.getElementById('profile-display-name-count');
         if (countEl && el) countEl.textContent = (el.value || '').length + ' / ' + DISPLAY_NAME_MAX_LENGTH;
+    }
+
+    function updateBioCount() {
+        var el = document.getElementById('profile-settings-bio');
+        var countEl = document.getElementById('profile-bio-count');
+        if (countEl && el) countEl.textContent = (el.value || '').length + ' / ' + BIO_MAX_LENGTH;
     }
 
     function deletePost(id) {

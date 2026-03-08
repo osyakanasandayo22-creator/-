@@ -1070,7 +1070,7 @@ textarea,
     border-radius: 8px 8px 0 0;
 }
 
-/* ========== プロフィールページ ========== */
+/* ========== プロフィールページ（note風） ========== */
 .view-profile {
     position: fixed;
     inset: 0;
@@ -1083,59 +1083,79 @@ textarea,
 .profile-page-header {
     flex-shrink: 0;
     padding: calc(12px + env(safe-area-inset-top, 0px)) 24px 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-card);
+    border-bottom: none;
+    background: transparent;
 }
 
 .profile-page-main {
     flex: 1;
     max-width: 640px;
     margin: 0 auto;
-    padding: 24px 20px 48px;
+    padding: 0 24px 48px;
     width: 100%;
 }
 
+/* note風プロフィールカード：余白多め・タイポグラフィ重視 */
 .profile-page-card {
     text-align: center;
-    padding: 32px 20px 24px;
-    margin-bottom: 24px;
+    padding: 40px 28px 36px;
+    margin-bottom: 32px;
     background: var(--bg-card);
-    border-radius: 12px;
+    border-radius: 16px;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    position: relative;
+}
+
+[data-theme="dark"] .profile-page-card {
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
 }
 
 .profile-page-avatar {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 16px;
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
+    font-size: 2.75rem;
     line-height: 1;
     background: var(--bg-elevated);
     border-radius: 50%;
-    border: 2px solid var(--border);
+    border: 3px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .profile-page-avatar--initial {
     font-weight: 700;
-    font-size: 2rem;
+    font-size: 2.25rem;
     color: #fff;
 }
 
 .profile-page-name {
-    font-size: 1.35rem;
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
     font-weight: 600;
-    margin: 0 0 16px;
+    margin: 0 0 12px;
     color: var(--text-main);
+    letter-spacing: 0.02em;
+}
+
+.profile-page-bio {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--text-sub);
+    margin: 0 auto 20px;
+    max-width: 420px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-align: center;
 }
 
 .profile-page-stats {
     display: flex;
     justify-content: center;
-    gap: 24px;
+    gap: 28px;
     font-size: 0.9375rem;
     color: var(--text-sub);
 }
@@ -1198,11 +1218,12 @@ textarea,
     from { transform: translateX(100%); }
     to { transform: translateX(0); }
 }
+/* スマホのノッチ・充電表示と被らないよう safe-area で下にずらす */
 .follow-drawer-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 20px 16px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
@@ -1281,15 +1302,18 @@ textarea,
 
 .profile-posts-section {
     margin-top: 8px;
+    padding-top: 8px;
 }
 
 .profile-posts-title {
-    font-size: 1.1rem;
+    font-family: var(--font-serif);
+    font-size: 1.125rem;
     font-weight: 600;
-    margin: 0 0 16px;
-    padding-bottom: 8px;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text-main);
+    letter-spacing: 0.02em;
 }
 
 .profile-posts-list {
@@ -1586,6 +1610,22 @@ textarea,
     flex-shrink: 0;
     font-size: 0.75rem;
     color: var(--text-sub);
+}
+
+.profile-settings-bio-wrap {
+    margin-bottom: 16px;
+}
+.profile-settings-bio-wrap .profile-settings-bio-input {
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+}
+.profile-bio-count {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-sub);
+    margin-top: 4px;
+    text-align: right;
 }
 
 .profile-settings-form .auth-input {
