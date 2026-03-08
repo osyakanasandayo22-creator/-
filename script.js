@@ -698,9 +698,8 @@
         if (!item) return;
         currentDetailId = id;
         const likes = typeof item.likes === 'number' ? item.likes : 0;
-        var showActions = isLoggedIn();
-        var isOwnPost = showActions && auth.currentUser.uid === item.authorId;
-        var actionsHtml = showActions
+        var isOwnPost = isLoggedIn() && item.authorId && auth.currentUser.uid === item.authorId;
+        var actionsHtml = isOwnPost
             ? '<div class="detail-actions">' +
               '<button type="button" class="btn btn--outline" data-action="edit" data-id="' + _escape(item.id) + '">編集</button>' +
               '<button type="button" class="btn danger" data-action="delete" data-id="' + _escape(item.id) + '">削除</button>' +
@@ -786,7 +785,7 @@
         modalBody.querySelector('[data-action="like"]').onclick = function () {
             incrementLike(item.id);
         };
-        if (showActions) {
+        if (isOwnPost) {
             var editBtn = modalBody.querySelector('[data-action="edit"]');
             var deleteBtn = modalBody.querySelector('[data-action="delete"]');
             if (editBtn) editBtn.onclick = function () {
@@ -1158,6 +1157,11 @@
 
         if (editingId) {
             var item = thoughts.find(function (t) { return t.id === editingId; });
+            if (!item || item.authorId !== auth.currentUser.uid) {
+                showToast('この投稿は編集できません');
+                editingId = null;
+                return;
+            }
             submitBtn.textContent = '更新する';
             titleEl.value = item ? item.title : '';
             contentEl.innerHTML = item ? item.content : '';
@@ -1185,6 +1189,11 @@
     }
 
     function deletePost(id) {
+        var item = thoughts.find(function (t) { return t.id === id; });
+        if (item && auth && auth.currentUser && item.authorId !== auth.currentUser.uid) {
+            showToast('この投稿は削除できません');
+            return;
+        }
         thoughts = thoughts.filter(function (t) { return t.id !== id; });
         if (db) {
             db.collection(FIRESTORE_COLLECTION).doc(id).delete().catch(function (err) {
