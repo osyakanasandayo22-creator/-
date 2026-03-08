@@ -1955,7 +1955,8 @@ textarea,
     .feed { padding: 0 14px 80px; }
     .search-bar { gap: 8px; margin-top: 10px; }
     .search-bar input[type="search"] { min-width: 0; }
-    .modal-content { padding: 24px 16px; }
+    .modal-content { padding: 24px 16px; margin-top: calc(32px + env(safe-area-inset-top, 0px)); }
+    .close-btn { top: calc(12px + env(safe-area-inset-top, 0px)); }
     .card { padding: 16px 18px; }
     .editor-page-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 16px; }
     .editor-header-row--meta .editor-tags-input { min-width: 0; }
