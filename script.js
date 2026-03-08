@@ -18,6 +18,9 @@
     /** 名著：いいねがこの数以上の投稿を人気順で表示 */
     const MASTERPIECE_MIN_LIKES = 2;
     const MASTERPIECE_MAX = 10;
+    /** タイムライン：初回表示件数・追加読み込み件数 */
+    const FEED_INITIAL_PAGE_SIZE = 15;
+    const FEED_LOAD_MORE_SIZE = 12;
 
     var db = null;
     var auth = null;
@@ -201,6 +204,11 @@
     let searchTimeout = null;
     let viewingProfileUserId = null;
     var currentProfileForDrawer = { userId: null, following: [], followers: [] };
+    /** タイムラインの遅延読み込み用 */
+    var feedFilteredList = [];
+    var feedVisibleCount = 0;
+    var feedLoadMoreSentinel = null;
+    var feedLoadMoreObserver = null;
 
     function save() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
@@ -876,6 +884,88 @@
         });
     }
 
+    /** 1件の thought からタイムライン用カード要素を生成して返す */
+    function createFeedCard(thought) {
+        var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
+        var likes = typeof thought.likes === 'number' ? thought.likes : 0;
+        var liked = isLikedByMe(thought);
+        var likeImgSrc = getLikeIconSrc(liked);
+        var authorName = thought.authorDisplayName || '匿名';
+        var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
+        var authorClass = thought.authorId ? ' card-author--clickable' : '';
+        var verifiedBadge = ((thought.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.id = thought.id;
+        card.innerHTML =
+            '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
+            authorIconHtml +
+            '<span class="card-author-name">' + _escape(authorName) + '</span>' + verifiedBadge +
+            '</div>' +
+            '<h3>' + _escape(thought.title) + '</h3>' +
+            '<div class="preview">' + _escape(plainText) + '</div>' +
+            '<div class="meta">' +
+            (thought.tags && thought.tags.length
+                ? thought.tags.map(function (t) { return '<span class="tag">' + _escape(t) + '</span>'; }).join('')
+                : '') +
+            '<span class="date">' + _escape(formatDate(thought.updatedAt || thought.createdAt)) + '</span>' +
+            '<button type="button" class="like-btn" data-id="' + _escape(thought.id) + '" title="高評価">' +
+            '<img class="like-icon" src="' + _escape(likeImgSrc) + '" alt=""> <span class="like-count">' + likes + '</span>' +
+            '</button>' +
+            '</div>';
+        card.onclick = function (e) {
+            if (e.target.closest('.like-btn')) return;
+            if (e.target.closest('.card-author--clickable')) return;
+            showDetail(thought.id);
+        };
+        var authorEl = card.querySelector('.card-author[data-author-id]');
+        if (authorEl && thought.authorId) {
+            authorEl.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openProfileView(thought.authorId);
+            };
+            authorEl.onkeydown = function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    authorEl.click();
+                }
+            };
+        }
+        var likeBtn = card.querySelector('.like-btn');
+        if (likeBtn) {
+            likeBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                incrementLike(thought.id);
+            });
+        }
+        return card;
+    }
+
+    /** 追加読み込み：次の N 件をタイムラインに追加 */
+    function appendFeedCards(fromIndex, count) {
+        var timeline = feedTimeline || feed;
+        if (!timeline) return;
+        var end = Math.min(fromIndex + count, feedFilteredList.length);
+        for (var i = fromIndex; i < end; i++) {
+            timeline.insertBefore(createFeedCard(feedFilteredList[i]), feedLoadMoreSentinel);
+        }
+        feedVisibleCount = end;
+        updateFeedLoadMoreVisibility();
+        if (searchHint) searchHint.textContent = feedFilteredList.length + ' 件（' + feedVisibleCount + ' 件表示）';
+    }
+
+    function updateFeedLoadMoreVisibility() {
+        if (!feedLoadMoreSentinel) return;
+        var hasMore = feedVisibleCount < feedFilteredList.length;
+        feedLoadMoreSentinel.hidden = !hasMore;
+        if (feedLoadMoreObserver) {
+            if (hasMore) feedLoadMoreObserver.observe(feedLoadMoreSentinel);
+            else feedLoadMoreObserver.disconnect();
+        }
+    }
+
     function renderFeed() {
         renderPopularTagsSection();
         renderFeedSidebar();
@@ -884,74 +974,46 @@
         var timeline = feedTimeline || feed;
         var cards = timeline.querySelectorAll('.card');
         cards.forEach(function (c) { c.remove(); });
+        if (feedLoadMoreSentinel) feedLoadMoreSentinel.remove();
+        if (feedLoadMoreObserver) feedLoadMoreObserver.disconnect();
 
         if (list.length === 0) {
             emptyState.hidden = false;
             searchHint.textContent = (searchInput && searchInput.value.trim()) || (filterTag && filterTag.value)
                 ? '該当する哲学はありません。'
                 : '';
+            feedFilteredList = [];
+            feedVisibleCount = 0;
             return;
         }
         emptyState.hidden = true;
-        searchHint.textContent = list.length + ' 件';
+        feedFilteredList = list;
+        feedVisibleCount = Math.min(FEED_INITIAL_PAGE_SIZE, list.length);
 
-        list.forEach(function (thought, index) {
-            var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
-            var likes = typeof thought.likes === 'number' ? thought.likes : 0;
-            var liked = isLikedByMe(thought);
-            var likeImgSrc = getLikeIconSrc(liked);
-            var authorName = thought.authorDisplayName || '匿名';
-            var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
-            var authorClass = thought.authorId ? ' card-author--clickable' : '';
-            var verifiedBadge = ((thought.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
-            var card = document.createElement('div');
-            card.className = 'card';
-            card.dataset.id = thought.id;
-            card.innerHTML =
-                '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
-                authorIconHtml +
-                '<span class="card-author-name">' + _escape(authorName) + '</span>' + verifiedBadge +
-                '</div>' +
-                '<h3>' + _escape(thought.title) + '</h3>' +
-                '<div class="preview">' + _escape(plainText) + '</div>' +
-                '<div class="meta">' +
-                (thought.tags && thought.tags.length
-                    ? thought.tags.map(function (t) { return '<span class="tag">' + _escape(t) + '</span>'; }).join('')
-                    : '') +
-                '<span class="date">' + _escape(formatDate(thought.updatedAt || thought.createdAt)) + '</span>' +
-                '<button type="button" class="like-btn" data-id="' + _escape(thought.id) + '" title="高評価">' +
-                '<img class="like-icon" src="' + _escape(likeImgSrc) + '" alt=""> <span class="like-count">' + likes + '</span>' +
-                '</button>' +
-                '</div>';
-            card.onclick = function (e) {
-                if (e.target.closest('.like-btn')) return;
-                if (e.target.closest('.card-author--clickable')) return;
-                showDetail(thought.id);
-            };
-            var authorEl = card.querySelector('.card-author[data-author-id]');
-            if (authorEl && thought.authorId) {
-                authorEl.onclick = function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openProfileView(thought.authorId);
-                };
-                authorEl.onkeydown = function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        authorEl.click();
-                    }
-                };
-            }
-            var likeBtn = card.querySelector('.like-btn');
-            if (likeBtn) {
-                likeBtn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    incrementLike(thought.id);
+        for (var i = 0; i < feedVisibleCount; i++) {
+            timeline.appendChild(createFeedCard(list[i]));
+        }
+
+        feedLoadMoreSentinel = document.createElement('div');
+        feedLoadMoreSentinel.className = 'feed-load-more-sentinel';
+        feedLoadMoreSentinel.setAttribute('aria-hidden', 'true');
+        feedLoadMoreSentinel.innerHTML = '<span class="feed-load-more-label">下へスクロールでさらに表示</span>';
+        timeline.appendChild(feedLoadMoreSentinel);
+
+        if (!feedLoadMoreObserver && typeof IntersectionObserver !== 'undefined') {
+            feedLoadMoreObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting || feedVisibleCount >= feedFilteredList.length) return;
+                    appendFeedCards(feedVisibleCount, FEED_LOAD_MORE_SIZE);
                 });
-            }
-            timeline.appendChild(card);
-        });
+            }, { root: null, rootMargin: '200px', threshold: 0 });
+        }
+        updateFeedLoadMoreVisibility();
+        if (searchHint) {
+            searchHint.textContent = feedFilteredList.length === feedVisibleCount
+                ? list.length + ' 件'
+                : list.length + ' 件（' + feedVisibleCount + ' 件表示）';
+        }
     }
 
     function _escape(s) {

@@ -401,13 +401,29 @@ textarea,
         gap: 24px 32px;
     }
     .feed-timeline .timeline-heading,
-    .feed-timeline .empty-state {
+    .feed-timeline .empty-state,
+    .feed-timeline .feed-load-more-sentinel {
         grid-column: 1 / -1;
     }
     .feed-timeline .card {
         margin-bottom: 0;
         min-height: 140px;
     }
+}
+
+/* タイムライン追加読み込み用センチネル（下スクロールで表示） */
+.feed-load-more-sentinel {
+    min-height: 1px;
+    padding: 16px 0 24px;
+    text-align: center;
+    color: var(--text-sub);
+    font-size: 0.875rem;
+}
+.feed-load-more-sentinel[hidden] {
+    display: none;
+}
+.feed-load-more-label {
+    display: inline-block;
 }
 
 .timeline-heading {
