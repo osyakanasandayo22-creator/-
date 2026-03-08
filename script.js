@@ -2247,17 +2247,24 @@
         scrollCloseTimeout = setTimeout(onScrollCloseProfile, 50);
     }, { passive: true });
 
-    /* スクロールのペースに合わせてヘッダーをだんだんたたむ（同じ量だけ上にずらす） */
+    /* 最上部ではそのまま表示。下スクロールでだんだんたたみ、上スクロールでだんだん広がる（transitionで滑らかに） */
     var siteHeader = document.querySelector('.site-header');
     if (siteHeader) {
-        function updateHeaderFold() {
+        var lastScrollY = window.scrollY || window.pageYOffset;
+        var topThresh = 10;
+        function updateHeaderByScroll() {
             var y = window.scrollY || window.pageYOffset;
-            var headerHeight = siteHeader.offsetHeight;
-            var translate = Math.min(y, headerHeight);
-            siteHeader.style.transform = translate ? 'translateY(-' + translate + 'px)' : '';
+            if (y <= topThresh) {
+                siteHeader.classList.remove('site-header--hidden');
+            } else if (y > lastScrollY) {
+                siteHeader.classList.add('site-header--hidden');
+            } else {
+                siteHeader.classList.remove('site-header--hidden');
+            }
+            lastScrollY = y;
         }
-        window.addEventListener('scroll', updateHeaderFold, { passive: true });
-        updateHeaderFold();
+        window.addEventListener('scroll', updateHeaderByScroll, { passive: true });
+        updateHeaderByScroll();
     }
 
     var authClose = document.getElementById('auth-close');
