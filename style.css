@@ -1943,8 +1943,8 @@ textarea,
     transform: translateX(-50%) translateY(0);
 }
 
-/* ========== レスポンシブ（スマホ対応） ========== */
-@media (max-width: 480px) {
+/* ========== レスポンシブ（スマホ・タブレット縦向き対応） ========== */
+@media (max-width: 768px) {
     html {
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
@@ -1960,14 +1960,16 @@ textarea,
     .editor-page-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 16px; }
     .editor-header-row--meta .editor-tags-input { min-width: 0; }
     .editor-main { padding: 0 14px 16px; }
-    .editor-main .editor-body,
-    #post-content.editor-body {
-        flex: 0 0 auto;
-        height: 140px;
-        min-height: 140px;
+    /* 投稿フォームの本文エリア：高さを抑えてツールバーが見えるように（!importantで確実に適用） */
+    .view-editor .editor-main .editor-body,
+    .view-editor #post-content.editor-body {
+        flex: 0 0 auto !important;
+        height: 140px !important;
+        min-height: 140px !important;
+        max-height: 140px !important;
         padding-top: 12px;
         padding-bottom: 12px;
-        overflow-y: auto;
+        overflow-y: auto !important;
     }
     .profile-page-main,
     .settings-page-main { padding-left: 16px; padding-right: 16px; }
