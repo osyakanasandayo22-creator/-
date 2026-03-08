@@ -45,6 +45,19 @@ body {
     color: var(--text-main);
     min-height: 100vh;
     transition: background-color 0.3s, color 0.2s;
+    user-select: none;
+}
+
+/* 入力欄・投稿のタイトル・本文のみ範囲選択可能（ボタン等は選択不可） */
+input,
+textarea,
+[contenteditable="true"],
+.card h3,
+.card .preview,
+.detail-title,
+.detail-content,
+.terms-content {
+    user-select: text;
 }
 
 /* ビュー切り替え */
@@ -1496,13 +1509,6 @@ body {
     z-index: 60;
     background: var(--bg-color);
     flex-direction: column;
-    user-select: none;
-}
-
-/* 投稿フォーム内でタイトル・本文のみ範囲選択可能 */
-.view-editor #post-title,
-.view-editor #post-content {
-    user-select: text;
 }
 
 .editor-page-header {
