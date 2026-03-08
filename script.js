@@ -63,7 +63,7 @@
         if (isLoggedIn()) {
             loginBtn.hidden = true;
             authUser.hidden = false;
-            if (displayNameEl && auth.currentUser) displayNameEl.textContent = getDisplayName(auth.currentUser);
+            if (displayNameEl) displayNameEl.textContent = getDisplayName(auth ? auth.currentUser : null);
             if (postTrigger) postTrigger.style.visibility = '';
         } else {
             loginBtn.hidden = false;
