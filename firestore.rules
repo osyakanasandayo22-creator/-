@@ -6,9 +6,12 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if request.auth != null;
     }
-    // プロフィール（アイコン）: 自分のドキュメントのみ読み書き
+    // プロフィール・フォロー: ログイン済みは他ユーザーを読める。自分のドキュメントは全項目の書き込み可。
+    // 他ユーザーのドキュメントはフォロー時に followersCount を更新するため create/update を許可（本番では Cloud Functions での更新を推奨）
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
