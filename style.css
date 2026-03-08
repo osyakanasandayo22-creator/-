@@ -199,6 +199,105 @@ textarea,
     padding: 0 20px 80px;
 }
 
+.feed-timeline {
+    margin: 0;
+    padding: 0;
+}
+
+/* ---------- 人気のタグ（note風） ---------- */
+.popular-tags-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.popular-tags-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-sub);
+    margin: 0 0 16px 0;
+    letter-spacing: 0.02em;
+}
+
+.popular-tag-block {
+    margin-bottom: 24px;
+}
+
+.popular-tag-block:last-child {
+    margin-bottom: 0;
+}
+
+.popular-tag-name {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 4px 0;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.popular-tag-name:hover {
+    color: var(--accent);
+}
+
+.popular-tag-name:focus {
+    outline: none;
+    background: var(--bg-elevated);
+}
+
+.popular-tag-count {
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--text-sub);
+}
+
+.popular-tag-posts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 600px) {
+    .popular-tag-posts {
+        grid-template-columns: 1fr;
+    }
+}
+
+.popular-tag-posts .card--compact {
+    min-height: 0;
+    padding: 14px 16px;
+    margin-bottom: 0;
+}
+
+.popular-tag-posts .card--compact h3 {
+    font-size: 0.9375rem;
+    margin-bottom: 4px;
+}
+
+.popular-tag-posts .card--compact .preview {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    font-size: 0.8125rem;
+}
+
+.popular-tag-posts .card--compact .card-author {
+    margin-bottom: 8px;
+}
+
+.popular-tag-posts .card--compact .card-author-name,
+.popular-tag-posts .card--compact .date {
+    font-size: 0.75rem;
+}
+
+.popular-tag-posts .card--compact .meta {
+    margin-top: 8px;
+}
+
 .empty-state {
     text-align: center;
     padding: 56px 24px;

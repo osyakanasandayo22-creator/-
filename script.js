@@ -156,7 +156,9 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
 
     const feed = document.getElementById('feed');
+    const feedTimeline = document.getElementById('feed-timeline');
     const emptyState = document.getElementById('empty-state');
+    const popularTagsSection = document.getElementById('popular-tags-section');
     const modalOverlay = document.getElementById('modal-overlay');
     const modalBody = document.getElementById('modal-body');
     const viewFeed = document.getElementById('view-feed');
@@ -576,6 +578,126 @@
         return Array.from(set).sort();
     }
 
+    /** 人気のタグを取得（投稿数が多い順、最大 limit 件） */
+    function getPopularTags(limit) {
+        const countByTag = {};
+        thoughts.forEach(function (t) {
+            (t.tags || []).forEach(function (tag) {
+                var key = tag && tag.trim();
+                if (key) {
+                    countByTag[key] = (countByTag[key] || 0) + 1;
+                }
+            });
+        });
+        return Object.keys(countByTag)
+            .map(function (tag) { return { tag: tag, count: countByTag[tag] }; })
+            .sort(function (a, b) { return b.count - a.count; })
+            .slice(0, limit || 6);
+    }
+
+    /** 指定タグの投稿をいいね数順で最大 limit 件取得 */
+    function getPopularPostsForTag(tag, limit) {
+        return thoughts
+            .filter(function (t) { return (t.tags || []).indexOf(tag) >= 0; })
+            .sort(function (a, b) {
+                var la = typeof a.likes === 'number' ? a.likes : 0;
+                var lb = typeof b.likes === 'number' ? b.likes : 0;
+                if (lb !== la) return lb - la;
+                return (b.updatedAt || '') > (a.updatedAt || '') ? 1 : -1;
+            })
+            .slice(0, limit || 3);
+    }
+
+    /** カード1枚分のHTMLを生成（compact は人気タグ用のコンパクト表示） */
+    function buildCardHtml(thought, compact) {
+        var likes = typeof thought.likes === 'number' ? thought.likes : 0;
+        var liked = isLikedByMe(thought);
+        var likeImgSrc = getLikeIconSrc(liked);
+        var authorName = thought.authorDisplayName || '匿名';
+        var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
+        var authorClass = thought.authorId ? ' card-author--clickable' : '';
+        var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
+        var tagHtml = (thought.tags && thought.tags.length)
+            ? thought.tags.map(function (t) { return '<span class="tag">' + _escape(t) + '</span>'; }).join('')
+            : '';
+        var cardClass = 'card' + (compact ? ' card--compact' : '');
+        return '<div class="' + cardClass + '" data-id="' + _escape(thought.id) + '">' +
+            '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
+            authorIconHtml + '<span class="card-author-name">' + _escape(authorName) + '</span>' +
+            '</div>' +
+            '<h3>' + _escape(thought.title) + '</h3>' +
+            '<div class="preview">' + _escape(plainText) + '</div>' +
+            '<div class="meta">' + tagHtml +
+            '<span class="date">' + _escape(formatDate(thought.updatedAt || thought.createdAt)) + '</span>' +
+            '<button type="button" class="like-btn" data-id="' + _escape(thought.id) + '" title="高評価">' +
+            '<img class="like-icon" src="' + _escape(likeImgSrc) + '" alt=""> <span class="like-count">' + likes + '</span>' +
+            '</button></div></div>';
+    }
+
+    /** 人気タグセクションを描画（note風：人気タグ＋各タグの人気投稿最大3件） */
+    function renderPopularTagsSection() {
+        if (!popularTagsSection) return;
+        var popular = getPopularTags(6);
+        if (popular.length === 0) {
+            popularTagsSection.hidden = true;
+            return;
+        }
+        popularTagsSection.hidden = false;
+        var html = '<h2 class="popular-tags-heading">人気のタグ</h2>';
+        popular.forEach(function (item) {
+            var posts = getPopularPostsForTag(item.tag, 3);
+            if (posts.length === 0) return;
+            html += '<div class="popular-tag-block" data-tag="' + _escape(item.tag) + '">';
+            html += '<h3 class="popular-tag-name"><span class="popular-tag-label">' + _escape(item.tag) + '</span> <span class="popular-tag-count">' + item.count + '件</span></h3>';
+            html += '<div class="popular-tag-posts">';
+            posts.forEach(function (thought) {
+                html += buildCardHtml(thought, true);
+            });
+            html += '</div></div>';
+        });
+        popularTagsSection.innerHTML = html;
+        popularTagsSection.querySelectorAll('.popular-tag-block .card').forEach(function (cardEl) {
+            var id = cardEl.dataset.id;
+            var thought = thoughts.find(function (t) { return t.id === id; });
+            if (!thought) return;
+            cardEl.onclick = function (e) {
+                if (e.target.closest('.like-btn')) return;
+                if (e.target.closest('.card-author--clickable')) return;
+                showDetail(thought.id);
+            };
+            var authorEl = cardEl.querySelector('.card-author[data-author-id]');
+            if (authorEl && thought.authorId) {
+                authorEl.onclick = function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openProfileView(thought.authorId);
+                };
+                authorEl.onkeydown = function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); authorEl.click(); }
+                };
+            }
+            var likeBtn = cardEl.querySelector('.like-btn');
+            if (likeBtn) {
+                likeBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    incrementLike(thought.id);
+                });
+            }
+        });
+        popularTagsSection.querySelectorAll('.popular-tag-name').forEach(function (tagNameEl) {
+            var tag = tagNameEl.closest('.popular-tag-block').dataset.tag;
+            if (!tag || !filterTag) return;
+            tagNameEl.addEventListener('click', function () {
+                filterTag.value = tag;
+                renderFeed();
+            });
+            tagNameEl.setAttribute('role', 'button');
+            tagNameEl.setAttribute('tabindex', '0');
+            tagNameEl.setAttribute('title', 'このタグでフィルター');
+        });
+    }
+
     function getFilteredThoughts() {
         const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : '';
         const tagVal = (filterTag && filterTag.value) ? filterTag.value : '';
@@ -628,8 +750,10 @@
     }
 
     function renderFeed() {
-        const list = getFilteredThoughts();
-        const cards = feed.querySelectorAll('.card');
+        renderPopularTagsSection();
+        var list = getFilteredThoughts();
+        var timeline = feedTimeline || feed;
+        var cards = timeline.querySelectorAll('.card');
         cards.forEach(function (c) { c.remove(); });
 
         if (list.length === 0) {
@@ -643,14 +767,14 @@
         searchHint.textContent = list.length + ' 件';
 
         list.forEach(function (thought, index) {
-            const plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
-            const likes = typeof thought.likes === 'number' ? thought.likes : 0;
-            const liked = isLikedByMe(thought);
-            const likeImgSrc = getLikeIconSrc(liked);
-            const authorName = thought.authorDisplayName || '匿名';
-            const authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
+            var plainText = (thought.content || '').replace(/<[^>]*>?/gm, '');
+            var likes = typeof thought.likes === 'number' ? thought.likes : 0;
+            var liked = isLikedByMe(thought);
+            var likeImgSrc = getLikeIconSrc(liked);
+            var authorName = thought.authorDisplayName || '匿名';
+            var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
             var authorClass = thought.authorId ? ' card-author--clickable' : '';
-            const card = document.createElement('div');
+            var card = document.createElement('div');
             card.className = 'card';
             card.dataset.id = thought.id;
             card.innerHTML =
@@ -696,7 +820,7 @@
                     incrementLike(thought.id);
                 });
             }
-            feed.appendChild(card);
+            timeline.appendChild(card);
         });
     }
 
