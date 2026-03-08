@@ -78,7 +78,7 @@ textarea,
     background: var(--bg-color);
     border-bottom: 1px solid var(--border);
     padding: calc(20px + env(safe-area-inset-top, 0px)) 24px 16px;
-    transition: background-color 0.2s, border-color 0.2s, transform 0.25s ease-out;
+    transition: background-color 0.2s, border-color 0.2s;
 }
 
 .header-inner {
@@ -2271,8 +2271,4 @@ textarea,
         transform: translateX(12px);
     }
 
-    /* --- 下スクロールでヘッダーを上にしまう --- */
-    .site-header.site-header--hidden {
-        transform: translateY(-100%);
-    }
 }

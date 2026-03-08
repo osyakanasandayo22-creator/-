@@ -2247,12 +2247,17 @@
         scrollCloseTimeout = setTimeout(onScrollCloseProfile, 50);
     }, { passive: true });
 
-    /* ヘッダーは常に表示（sticky のままスクロール時も画面上部に固定） */
+    /* スクロールのペースに合わせてヘッダーをだんだんたたむ（同じ量だけ上にずらす） */
     var siteHeader = document.querySelector('.site-header');
     if (siteHeader) {
-        siteHeader.style.transition = '';
-        siteHeader.style.transform = '';
-        siteHeader.classList.remove('site-header--hidden');
+        function updateHeaderFold() {
+            var y = window.scrollY || window.pageYOffset;
+            var headerHeight = siteHeader.offsetHeight;
+            var translate = Math.min(y, headerHeight);
+            siteHeader.style.transform = translate ? 'translateY(-' + translate + 'px)' : '';
+        }
+        window.addEventListener('scroll', updateHeaderFold, { passive: true });
+        updateHeaderFold();
     }
 
     var authClose = document.getElementById('auth-close');
