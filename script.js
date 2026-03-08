@@ -1402,6 +1402,33 @@
         document.body.style.overflow = '';
     }
 
+    var settingsListPanel = document.getElementById('settings-list-panel');
+    var settingsContactPanel = document.getElementById('settings-contact-panel');
+    var settingsTermsPanel = document.getElementById('settings-terms-panel');
+
+    function showSettingsList() {
+        if (settingsListPanel) settingsListPanel.hidden = false;
+        if (settingsContactPanel) settingsContactPanel.hidden = true;
+        if (settingsTermsPanel) settingsTermsPanel.hidden = true;
+    }
+
+    function showSettingsContact() {
+        if (settingsListPanel) settingsListPanel.hidden = true;
+        if (settingsContactPanel) settingsContactPanel.hidden = false;
+        if (settingsTermsPanel) settingsTermsPanel.hidden = true;
+    }
+
+    function showSettingsTerms() {
+        if (settingsListPanel) settingsListPanel.hidden = true;
+        if (settingsContactPanel) settingsContactPanel.hidden = true;
+        if (settingsTermsPanel) settingsTermsPanel.hidden = false;
+    }
+
+    function isSettingsSubPanelOpen() {
+        return (settingsContactPanel && !settingsContactPanel.hidden) ||
+            (settingsTermsPanel && !settingsTermsPanel.hidden);
+    }
+
     function openSettingsView() {
         if (viewFeed) viewFeed.hidden = true;
         if (viewEditor) viewEditor.hidden = true;
@@ -1410,6 +1437,7 @@
             viewSettings.hidden = false;
             viewSettings.style.display = 'flex';
         }
+        showSettingsList();
         document.body.style.overflow = '';
     }
 
@@ -1418,8 +1446,17 @@
             viewSettings.hidden = true;
             viewSettings.style.display = 'none';
         }
+        showSettingsList();
         if (viewFeed) viewFeed.hidden = false;
         document.body.style.overflow = '';
+    }
+
+    function handleSettingsBack() {
+        if (isSettingsSubPanelOpen()) {
+            showSettingsList();
+        } else {
+            closeSettingsView();
+        }
     }
 
     function updateContactCharCount() {
@@ -1724,7 +1761,11 @@
             } else if (profileSettingsOverlay && !profileSettingsOverlay.hidden) {
                 closeProfileSettingsModal();
             } else if (viewSettings && !viewSettings.hidden) {
-                closeSettingsView();
+                if (isSettingsSubPanelOpen()) {
+                    showSettingsList();
+                } else {
+                    closeSettingsView();
+                }
             } else if (viewProfile && !viewProfile.hidden) {
                 closeProfileView();
             } else if (viewEditor && !viewEditor.hidden) {
@@ -1815,7 +1856,11 @@
     var profileBackBtn = document.getElementById('profile-back-btn');
     if (profileBackBtn) profileBackBtn.addEventListener('click', closeProfileView);
     var settingsBackBtn = document.getElementById('settings-back-btn');
-    if (settingsBackBtn) settingsBackBtn.addEventListener('click', closeSettingsView);
+    if (settingsBackBtn) settingsBackBtn.addEventListener('click', handleSettingsBack);
+    var settingsContactBtn = document.getElementById('settings-contact-btn');
+    if (settingsContactBtn) settingsContactBtn.addEventListener('click', showSettingsContact);
+    var settingsTermsBtn = document.getElementById('settings-terms-btn');
+    if (settingsTermsBtn) settingsTermsBtn.addEventListener('click', showSettingsTerms);
     var contactForm = document.getElementById('contact-form');
     if (contactForm) contactForm.addEventListener('submit', handleContactSubmit);
     var contactMessage = document.getElementById('contact-message');

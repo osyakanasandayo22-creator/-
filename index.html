@@ -94,13 +94,21 @@
     <!-- ========== 設定ビュー ========== -->
     <div class="view view-settings" id="view-settings" hidden>
         <header class="profile-page-header">
-            <button type="button" class="editor-back-btn" id="settings-back-btn" aria-label="一覧に戻る">← 戻る</button>
+            <button type="button" class="editor-back-btn" id="settings-back-btn" aria-label="戻る">← 戻る</button>
         </header>
         <main class="settings-page-main">
-            <h2 class="settings-page-title">設定</h2>
+            <!-- 設定一覧（メニュー） -->
+            <div class="settings-panel" id="settings-list-panel">
+                <h2 class="settings-page-title">設定</h2>
+                <ul class="settings-menu-list" role="menu">
+                    <li><button type="button" class="settings-menu-item" id="settings-contact-btn" role="menuitem">お問い合わせフォーム</button></li>
+                    <li><button type="button" class="settings-menu-item" id="settings-terms-btn" role="menuitem">利用規約</button></li>
+                </ul>
+            </div>
 
-            <section class="settings-section" aria-labelledby="contact-form-title">
-                <h3 id="contact-form-title" class="settings-section-title">お問い合わせフォーム</h3>
+            <!-- お問い合わせフォーム画面 -->
+            <div class="settings-panel settings-panel--sub" id="settings-contact-panel" hidden>
+                <h2 class="settings-page-title">お問い合わせフォーム</h2>
                 <p class="settings-section-desc">ご質問・ご要望は以下のフォームからお送りください。</p>
                 <form class="contact-form" id="contact-form" novalidate>
                     <label class="contact-label" for="contact-name">お名前</label>
@@ -113,10 +121,11 @@
                     <p class="contact-form-error" id="contact-form-error" hidden></p>
                     <button type="submit" class="btn primary contact-submit-btn">送信する</button>
                 </form>
-            </section>
+            </div>
 
-            <section class="settings-section" aria-labelledby="terms-title">
-                <h3 id="terms-title" class="settings-section-title">利用規約</h3>
+            <!-- 利用規約画面 -->
+            <div class="settings-panel settings-panel--sub" id="settings-terms-panel" hidden>
+                <h2 class="settings-page-title">利用規約</h2>
                 <div class="terms-content" id="terms-content">
                     <p><strong>第1条（適用）</strong></p>
                     <p>本規約は、PhiloStream（以下「本サービス」）の利用に関する条件を定めるものです。ユーザーは本規約に同意の上、本サービスをご利用ください。</p>
@@ -131,7 +140,7 @@
                     <p><strong>第6条（規約の変更）</strong></p>
                     <p>本規約は予告なく変更される場合があります。変更後の利用により、変更に同意したものとみなします。</p>
                 </div>
-            </section>
+            </div>
         </main>
     </div>
 
