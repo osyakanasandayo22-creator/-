@@ -896,6 +896,17 @@
         var authorClass = thought.authorId ? ' card-author--clickable' : '';
         var verifiedBadge = ((thought.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
         var masterpieceBadge = isMasterpiece ? '<span class="masterpiece-badge" aria-label="名著">名著</span>' : '';
+        var isOwnPost = isLoggedIn() && thought.authorId && auth.currentUser.uid === thought.authorId;
+        var moreMenuHtml = '';
+        if (isLoggedIn()) {
+            moreMenuHtml = '<div class="post-more-wrap">' +
+                '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
+                '<div class="post-more-dropdown" hidden role="menu">' +
+                (isOwnPost
+                    ? '<button type="button" class="post-more-item danger" role="menuitem" data-action="delete" data-id="' + _escape(thought.id) + '">削除</button>'
+                    : '<button type="button" class="post-more-item" role="menuitem" data-action="report" data-id="' + _escape(thought.id) + '">通報</button>') +
+                '</div></div>';
+        }
         var card = document.createElement('div');
         card.className = 'card';
         card.dataset.id = thought.id;
@@ -906,6 +917,7 @@
             '</div>' +
             '<div class="card-title-row">' +
             '<h3>' + _escape(thought.title) + '</h3>' + masterpieceBadge +
+            moreMenuHtml +
             '</div>' +
             '<div class="preview">' + _escape(plainText) + '</div>' +
             '<div class="meta">' +
@@ -920,8 +932,33 @@
         card.onclick = function (e) {
             if (e.target.closest('.like-btn')) return;
             if (e.target.closest('.card-author--clickable')) return;
+            if (e.target.closest('.post-more-wrap')) return;
             showDetail(thought.id);
         };
+        var moreWrap = card.querySelector('.post-more-wrap');
+        if (moreWrap) {
+            bindMoreMenuCloseOnOutside(moreWrap);
+            var drop = moreWrap.querySelector('.post-more-dropdown');
+            if (drop) {
+                drop.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
+                    btn.onclick = function () {
+                        drop.hidden = true;
+                        showDeleteConfirm(function () {
+                            deletePost(thought.id);
+                            renderFeed();
+                            renderTagFilter();
+                            showToast('削除しました');
+                        });
+                    };
+                });
+                drop.querySelectorAll('[data-action="report"]').forEach(function (btn) {
+                    btn.onclick = function () {
+                        drop.hidden = true;
+                        reportPost(thought.id);
+                    };
+                });
+            }
+        }
         var authorEl = card.querySelector('.card-author[data-author-id]');
         if (authorEl && thought.authorId) {
             authorEl.onclick = function (e) {
@@ -1100,12 +1137,17 @@
         var isMasterpiece = likes >= MASTERPIECE_MIN_LIKES;
         var masterpieceBadgeHtml = isMasterpiece ? '<span class="masterpiece-badge" aria-label="名著">名著</span>' : '';
         var isOwnPost = isLoggedIn() && item.authorId && auth.currentUser.uid === item.authorId;
-        var actionsHtml = isOwnPost
-            ? '<div class="detail-actions">' +
-              '<button type="button" class="btn btn--outline" data-action="edit" data-id="' + _escape(item.id) + '">編集</button>' +
-              '<button type="button" class="btn danger" data-action="delete" data-id="' + _escape(item.id) + '">削除</button>' +
-              '</div>'
-            : '';
+        var detailMoreMenuHtml = '';
+        if (isLoggedIn()) {
+            var detailMenuItems = isOwnPost
+                ? '<button type="button" class="post-more-item" role="menuitem" data-action="edit" data-id="' + _escape(item.id) + '">編集</button>' +
+                  '<button type="button" class="post-more-item danger" role="menuitem" data-action="delete" data-id="' + _escape(item.id) + '">削除</button>'
+                : '<button type="button" class="post-more-item" role="menuitem" data-action="report" data-id="' + _escape(item.id) + '">通報</button>';
+            detailMoreMenuHtml = '<div class="post-more-wrap">' +
+                '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
+                '<div class="post-more-dropdown" hidden role="menu">' + detailMenuItems + '</div></div>';
+        }
+        var actionsHtml = '';
         var detailAuthorName = item.authorDisplayName || '匿名';
         var detailAuthorIconHtml = getAuthorIconHtml(item.authorIcon, item.authorIconBg, detailAuthorName, 'detail-author-icon');
         var detailVerifiedBadge = ((item.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
@@ -1126,6 +1168,7 @@
             '<span class="detail-author-name">' + _escape(detailAuthorName) + '</span>' + detailVerifiedBadge +
             '</div>' +
             followBtnHtml +
+            detailMoreMenuHtml +
             '</div>' +
             '<div class="detail-title-row">' +
             '<h2 class="detail-title">' + _escape(item.title) + '</h2>' + masterpieceBadgeHtml +
@@ -1231,22 +1274,37 @@
         container.querySelector('[data-action="like"]').onclick = function () {
             incrementLike(item.id);
         };
-        if (isOwnPost) {
-            var editBtn = container.querySelector('[data-action="edit"]');
-            var deleteBtn = container.querySelector('[data-action="delete"]');
-            if (editBtn) editBtn.onclick = function () {
-                closeArticleView();
-                openPostModal(item.id);
-            };
-            if (deleteBtn) deleteBtn.onclick = function () {
-                showDeleteConfirm(function () {
-                    deletePost(item.id);
-                    closeArticleView();
-                    renderFeed();
-                    renderTagFilter();
-                    showToast('削除しました');
+        var detailMoreWrap = container.querySelector('.detail-author-row .post-more-wrap');
+        if (detailMoreWrap) {
+            bindMoreMenuCloseOnOutside(detailMoreWrap);
+            var detailDrop = detailMoreWrap.querySelector('.post-more-dropdown');
+            if (detailDrop) {
+                detailDrop.querySelectorAll('[data-action="edit"]').forEach(function (btn) {
+                    btn.onclick = function () {
+                        detailDrop.hidden = true;
+                        closeArticleView();
+                        openPostModal(item.id);
+                    };
                 });
-            };
+                detailDrop.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
+                    btn.onclick = function () {
+                        detailDrop.hidden = true;
+                        showDeleteConfirm(function () {
+                            deletePost(item.id);
+                            closeArticleView();
+                            renderFeed();
+                            renderTagFilter();
+                            showToast('削除しました');
+                        });
+                    };
+                });
+                detailDrop.querySelectorAll('[data-action="report"]').forEach(function (btn) {
+                    btn.onclick = function () {
+                        detailDrop.hidden = true;
+                        reportPost(item.id);
+                    };
+                });
+            }
         }
 
         var replyingToReplyId = null;
@@ -1718,6 +1776,17 @@
                 var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
                 var authorClass = thought.authorId ? ' card-author--clickable' : '';
                 var cardVerifiedBadge = (followersCount > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
+                var isOwnPost = isLoggedIn() && thought.authorId && auth.currentUser.uid === thought.authorId;
+                var moreMenuHtml = '';
+                if (isLoggedIn()) {
+                    moreMenuHtml = '<div class="post-more-wrap">' +
+                        '<button type="button" class="post-more-btn" aria-label="その他" aria-haspopup="true" aria-expanded="false"></button>' +
+                        '<div class="post-more-dropdown" hidden role="menu">' +
+                        (isOwnPost
+                            ? '<button type="button" class="post-more-item danger" role="menuitem" data-action="delete" data-id="' + _escape(thought.id) + '">削除</button>'
+                            : '<button type="button" class="post-more-item" role="menuitem" data-action="report" data-id="' + _escape(thought.id) + '">通報</button>') +
+                        '</div></div>';
+                }
                 var card = document.createElement('div');
                 card.className = 'card profile-page-card-item';
                 card.dataset.id = thought.id;
@@ -1726,7 +1795,9 @@
                     authorIconHtml +
                     '<span class="card-author-name">' + _escape(authorName) + '</span>' + cardVerifiedBadge +
                     '</div>' +
-                    '<h3>' + _escape(thought.title) + '</h3>' +
+                    '<div class="card-title-row">' +
+                    '<h3>' + _escape(thought.title) + '</h3>' + moreMenuHtml +
+                    '</div>' +
                     '<div class="preview">' + _escape(plainText) + '</div>' +
                     '<div class="meta">' +
                     (thought.tags && thought.tags.length
@@ -1740,8 +1811,34 @@
                 card.onclick = function (e) {
                     if (e.target.closest('.like-btn')) return;
                     if (e.target.closest('.card-author--clickable')) return;
+                    if (e.target.closest('.post-more-wrap')) return;
                     showDetail(thought.id);
                 };
+                var moreWrap = card.querySelector('.post-more-wrap');
+                if (moreWrap) {
+                    bindMoreMenuCloseOnOutside(moreWrap);
+                    var drop = moreWrap.querySelector('.post-more-dropdown');
+                    if (drop) {
+                        drop.querySelectorAll('[data-action="delete"]').forEach(function (btn) {
+                            btn.onclick = function () {
+                                drop.hidden = true;
+                                showDeleteConfirm(function () {
+                                    deletePost(thought.id);
+                                    renderFeed();
+                                    renderTagFilter();
+                                    renderProfilePage(profile, opts);
+                                    showToast('削除しました');
+                                });
+                            };
+                        });
+                        drop.querySelectorAll('[data-action="report"]').forEach(function (btn) {
+                            btn.onclick = function () {
+                                drop.hidden = true;
+                                reportPost(thought.id);
+                            };
+                        });
+                    }
+                }
                 var authorEl = card.querySelector('.card-author[data-author-id]');
                 if (authorEl && thought.authorId) {
                     authorEl.onclick = function (e) {
@@ -2370,6 +2467,41 @@
             db.collection(FIRESTORE_COLLECTION).doc(postId).collection('replies').doc(replyId).delete()
                 .catch(function (err) { console.warn('Firestore reply delete failed:', err); });
         }
+    }
+
+    function reportPost(postId) {
+        if (!isLoggedIn()) {
+            showToast('ログインすると通報できます');
+            return;
+        }
+        showToast('通報しました。運営で確認します。');
+    }
+
+    /** 三点メニューのドロップダウンを外クリックで閉じる */
+    function bindMoreMenuCloseOnOutside(wrapEl) {
+        if (!wrapEl) return;
+        var dropdown = wrapEl.querySelector('.post-more-dropdown');
+        if (!dropdown) return;
+        function close() {
+            dropdown.hidden = true;
+            document.removeEventListener('click', onDocClick);
+        }
+        function onDocClick(e) {
+            if (wrapEl.contains(e.target)) return;
+            close();
+        }
+        wrapEl.querySelector('.post-more-btn').addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var isOpen = !dropdown.hidden;
+            document.querySelectorAll('.post-more-dropdown').forEach(function (d) { d.hidden = true; });
+            dropdown.hidden = isOpen;
+            if (!dropdown.hidden) {
+                setTimeout(function () { document.addEventListener('click', onDocClick); }, 0);
+            } else {
+                document.removeEventListener('click', onDocClick);
+            }
+        });
     }
 
     function submitPost() {

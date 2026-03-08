@@ -1098,6 +1098,95 @@ textarea,
     gap: 8px;
 }
 
+/* ========== 縦三点リーダーメニュー（カード・詳細共通） ========== */
+.post-more-wrap {
+    position: relative;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.post-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.post-more-btn:hover,
+.post-more-btn:focus {
+    background: var(--bg-elevated);
+    color: var(--text-main);
+}
+.post-more-btn::after {
+    content: '\22EE';
+    font-weight: 700;
+}
+
+.post-more-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 30;
+    min-width: 140px;
+    margin-top: 4px;
+    padding: 6px 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-hover);
+    list-style: none;
+    margin-left: 0;
+}
+.post-more-dropdown[hidden] {
+    display: none !important;
+}
+
+.post-more-dropdown button,
+.post-more-dropdown .post-more-item {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    color: var(--text-main);
+    font-size: 0.875rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.post-more-dropdown button:hover,
+.post-more-dropdown .post-more-item:hover {
+    background: var(--bg-elevated);
+}
+.post-more-dropdown button.danger,
+.post-more-dropdown .post-more-item.danger {
+    color: #d93025;
+}
+[data-theme="dark"] .post-more-dropdown button.danger,
+[data-theme="dark"] .post-more-dropdown .post-more-item.danger {
+    color: #f28b82;
+}
+
+/* カード内：タイトル行の右端に三点メニュー配置 */
+.card .post-more-wrap {
+    margin-left: auto;
+    margin-bottom: 0;
+}
+
+/* 詳細ビュー：著者行の右端に配置 */
+.detail-author-row .post-more-wrap {
+    margin-left: auto;
+}
+
 /* 返信フォーム（詳細モーダル下部） */
 .detail-reply-section {
     padding: 20px 24px 24px;
