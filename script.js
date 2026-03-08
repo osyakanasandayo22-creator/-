@@ -852,7 +852,31 @@
                 return title.includes(q) || plain.toLowerCase().includes(q) || tagsStr.includes(q);
             });
         }
-        if (sortOrder === 'popular') {
+        if (sortOrder === 'following') {
+            list = list.filter(function (t) {
+                return t.authorId && myFollowingSet.has(t.authorId);
+            });
+            var key = 'updatedAt';
+            list.sort(function (a, b) {
+                var ta = a[key] || '';
+                var tb = b[key] || '';
+                return ta > tb ? -1 : ta < tb ? 1 : 0;
+            });
+        } else if (sortOrder === 'trending') {
+            var now = Date.now();
+            var sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+            list = list.filter(function (t) {
+                var updated = t.updatedAt || t.createdAt || '';
+                var ts = typeof updated === 'number' ? updated : (new Date(updated)).getTime();
+                return !isNaN(ts) && now - ts <= sevenDaysMs;
+            });
+            list.sort(function (a, b) {
+                var la = typeof a.likes === 'number' ? a.likes : 0;
+                var lb = typeof b.likes === 'number' ? b.likes : 0;
+                if (lb !== la) return lb - la;
+                return (b.updatedAt || '') > (a.updatedAt || '') ? 1 : -1;
+            });
+        } else if (sortOrder === 'popular') {
             list.sort(function (a, b) {
                 var la = typeof a.likes === 'number' ? a.likes : 0;
                 var lb = typeof b.likes === 'number' ? b.likes : 0;
