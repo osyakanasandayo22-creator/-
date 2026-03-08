@@ -269,11 +269,22 @@
         </div>
     </div>
 
-    <!-- 詳細モーダル -->
+    <!-- ========== 記事閲覧ビュー（note風フルページ） ========== -->
+    <div class="view view-article" id="view-article" hidden>
+        <header class="article-view-header">
+            <button type="button" class="editor-back-btn" id="article-back-btn" aria-label="戻る">← 戻る</button>
+        </header>
+        <main class="article-view-main">
+            <div id="article-body" class="article-body">
+                <!-- 投稿内容は script.js で挿入 -->
+            </div>
+        </main>
+    </div>
+
+    <!-- モーダル（編集時などに使用・閲覧は view-article で表示） -->
     <div class="overlay" id="modal-overlay" role="dialog" aria-modal="true">
-        <span class="close-btn" id="close-detail" aria-label="閉じる">&times;</span>
         <div class="modal-content" id="modal-body">
-            <!-- 詳細 or 編集フォームは script.js で挿入 -->
+            <!-- 編集フォーム等は script.js で挿入 -->
         </div>
     </div>
 

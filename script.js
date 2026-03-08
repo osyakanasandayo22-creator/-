@@ -162,6 +162,13 @@
     const popularTagsSection = document.getElementById('popular-tags-section');
     const modalOverlay = document.getElementById('modal-overlay');
     const modalBody = document.getElementById('modal-body');
+    const viewArticle = document.getElementById('view-article');
+    const articleBody = document.getElementById('article-body');
+    var previousViewBeforeArticle = 'feed'; // 'feed' | 'profile'
+
+    function getDetailContainer() {
+        return (viewArticle && !viewArticle.hidden && articleBody) ? articleBody : null;
+    }
     const viewFeed = document.getElementById('view-feed');
     const viewEditor = document.getElementById('view-editor');
     const viewProfile = document.getElementById('view-profile');
@@ -909,7 +916,8 @@
         }
         save();
         renderFeed();
-        if (modalOverlay.classList.contains('is-open') && currentDetailId === id) {
+        var container = getDetailContainer();
+        if (container && currentDetailId === id) {
             showDetail(id);
         }
         var runPop = function (el) {
@@ -918,13 +926,42 @@
             setTimeout(function () { el.classList.remove('like-icon--pop'); }, 350);
         };
         runPop(feed.querySelector('.card[data-id="' + id + '"] .like-icon'));
-        runPop(modalBody.querySelector('.detail-like-btn .like-icon'));
+        if (container) runPop(container.querySelector('.detail-like-btn .like-icon'));
+    }
+
+    function closeArticleView() {
+        if (viewArticle) viewArticle.hidden = true;
+        currentDetailId = null;
+        if (previousViewBeforeArticle === 'profile' && viewProfile) {
+            viewProfile.hidden = false;
+            viewProfile.style.display = 'flex';
+            if (viewFeed) viewFeed.hidden = true;
+            if (viewEditor) viewEditor.hidden = true;
+        } else {
+            if (viewFeed) viewFeed.hidden = false;
+            if (viewProfile) viewProfile.hidden = true;
+            if (viewProfile) viewProfile.style.display = 'none';
+            if (viewEditor) viewEditor.hidden = true;
+        }
+        document.body.style.overflow = '';
     }
 
     function showDetail(id) {
         const item = thoughts.find(function (t) { return t.id === id; });
         if (!item) return;
         currentDetailId = id;
+        if (viewFeed && !viewFeed.hidden) previousViewBeforeArticle = 'feed';
+        if (viewProfile && !viewProfile.hidden) previousViewBeforeArticle = 'profile';
+        if (viewFeed) viewFeed.hidden = true;
+        if (viewProfile) viewProfile.hidden = true;
+        if (viewProfile) viewProfile.style.display = 'none';
+        if (viewEditor) viewEditor.hidden = true;
+        if (viewArticle) {
+            viewArticle.hidden = false;
+            viewArticle.style.display = 'flex';
+        }
+        document.body.style.overflow = '';
+
         const likes = typeof item.likes === 'number' ? item.likes : 0;
         var isOwnPost = isLoggedIn() && item.authorId && auth.currentUser.uid === item.authorId;
         var actionsHtml = isOwnPost
@@ -943,7 +980,8 @@
               (isFollowing(item.authorId) ? 'フォローを解除' : 'フォロー') + '</button>'
             : '';
         var authorClickable = item.authorId ? ' detail-author--clickable' : '';
-        modalBody.innerHTML =
+        var container = articleBody || modalBody;
+        container.innerHTML =
             '<article class="detail-card">' +
             '<div class="detail-author-row">' +
             '<div class="detail-author' + authorClickable + '" data-author-id="' + (item.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
@@ -987,16 +1025,13 @@
                 : '<p class="detail-reply-login-hint">ログインすると返信できます。</p>') +
             '<div class="detail-reply-list" id="detail-reply-list" role="list"></div>' +
             '</section>';
-        modalOverlay.classList.add('is-open');
-        modalOverlay.style.display = 'block';
-        document.body.style.overflow = 'hidden';
 
-        modalBody.querySelectorAll('.detail-toc-link').forEach(function (link) {
+        container.querySelectorAll('.detail-toc-link').forEach(function (link) {
             link.addEventListener('click', function (e) {
                 var href = link.getAttribute('href');
                 if (href && href.indexOf('#') === 0) {
                     var id = href.slice(1);
-                    var target = modalBody.querySelector('#' + id);
+                    var target = container.querySelector('#' + id);
                     if (target) {
                         e.preventDefault();
                         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1005,13 +1040,13 @@
             });
         });
 
-        var authorEl = modalBody.querySelector('.detail-author[data-author-id]');
+        var authorEl = container.querySelector('.detail-author[data-author-id]');
         if (authorEl && item.authorId) {
             authorEl.onclick = function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 openProfileView(item.authorId);
-                closeModal(modalOverlay);
+                closeArticleView();
             };
             authorEl.onkeydown = function (e) {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -1021,7 +1056,7 @@
             };
         }
 
-        var followBtn = modalBody.querySelector('[data-action="follow"]');
+        var followBtn = container.querySelector('[data-action="follow"]');
         if (followBtn) {
             followBtn.onclick = function (e) {
                 e.preventDefault();
@@ -1050,20 +1085,20 @@
             };
         }
 
-        modalBody.querySelector('[data-action="like"]').onclick = function () {
+        container.querySelector('[data-action="like"]').onclick = function () {
             incrementLike(item.id);
         };
         if (isOwnPost) {
-            var editBtn = modalBody.querySelector('[data-action="edit"]');
-            var deleteBtn = modalBody.querySelector('[data-action="delete"]');
+            var editBtn = container.querySelector('[data-action="edit"]');
+            var deleteBtn = container.querySelector('[data-action="delete"]');
             if (editBtn) editBtn.onclick = function () {
+                closeArticleView();
                 openPostModal(item.id);
-                closeModal(modalOverlay);
             };
             if (deleteBtn) deleteBtn.onclick = function () {
                 showDeleteConfirm(function () {
                     deletePost(item.id);
-                    closeModal(modalOverlay);
+                    closeArticleView();
                     renderFeed();
                     renderTagFilter();
                     showToast('削除しました');
@@ -1071,8 +1106,8 @@
             };
         }
 
-        var replyListEl = modalBody.querySelector('#detail-reply-list');
-        var replyCountBadge = modalBody.querySelector('#detail-reply-count-badge');
+        var replyListEl = container.querySelector('#detail-reply-list');
+        var replyCountBadge = container.querySelector('#detail-reply-count-badge');
         function renderReplyList(replies) {
             if (!replyListEl) return;
             var list = Array.isArray(replies) ? replies : [];
@@ -1163,7 +1198,7 @@
                 .catch(function (err) { console.warn('Replies load failed', err); });
         }
 
-        var replyForm = modalBody.querySelector('#detail-reply-form');
+        var replyForm = container.querySelector('#detail-reply-form');
         if (replyForm) {
             var replyTextarea = replyForm.querySelector('.detail-reply-textarea');
             var replyCountEl = replyForm.querySelector('.detail-reply-count');
@@ -1233,7 +1268,9 @@
 
     var replyLikeUpdating = false;
     function updateReplyLikeInDOM(replyId, likes, liked) {
-        var items = modalBody.querySelectorAll('.detail-reply-item[data-reply-id]');
+        var container = getDetailContainer();
+        if (!container) return;
+        var items = container.querySelectorAll('.detail-reply-item[data-reply-id]');
         var item = null;
         for (var i = 0; i < items.length; i++) {
             if (items[i].getAttribute('data-reply-id') === replyId) { item = items[i]; break; }
@@ -1270,8 +1307,8 @@
         }
         var newLiked = isLikedByMeReply(reply);
         updateReplyLikeInDOM(replyId, reply.likes, newLiked);
-        function refreshModal() {
-            if (modalOverlay.classList.contains('is-open') && currentDetailId === postId) {
+        function refreshDetailView() {
+            if (getDetailContainer() && currentDetailId === postId) {
                 showDetail(postId);
             }
             replyLikeUpdating = false;
@@ -1286,7 +1323,7 @@
                 likes: reply.likes,
                 likedBy: reply.likedBy
             }, { merge: true })
-                .then(function () { replyLikeUpdating = false; })
+                .then(function () { refreshDetailView(); })
                 .catch(function (err) {
                     console.warn('Reply like update failed', err);
                     if (idx < 0) {
@@ -1298,10 +1335,10 @@
                         reply.likes = (reply.likes || 0) + 1;
                     }
                     replyLikeUpdating = false;
-                    refreshModal();
+                    refreshDetailView();
                 });
         } else {
-            refreshModal();
+            refreshDetailView();
         }
     }
 
@@ -1917,6 +1954,8 @@
         }
         updateCharCounts();
         if (viewFeed) viewFeed.hidden = true;
+        if (viewProfile) viewProfile.hidden = true;
+        if (viewArticle) viewArticle.hidden = true;
         if (viewEditor) viewEditor.hidden = false;
         document.body.style.overflow = 'hidden';
         if (titleEl) titleEl.focus();
@@ -2262,7 +2301,8 @@
     });
     var editorBack = document.getElementById('editor-back');
     if (editorBack) editorBack.addEventListener('click', function () { closeEditorView(); editingId = null; });
-    document.getElementById('close-detail').addEventListener('click', function () { closeModal(modalOverlay); });
+    var articleBackBtn = document.getElementById('article-back-btn');
+    if (articleBackBtn) articleBackBtn.addEventListener('click', closeArticleView);
     document.getElementById('submit-post').addEventListener('click', submitPost);
 
     (function () {
@@ -2399,6 +2439,8 @@
             } else if (viewEditor && !viewEditor.hidden) {
                 closeEditorView();
                 editingId = null;
+            } else if (viewArticle && !viewArticle.hidden) {
+                closeArticleView();
             } else if (modalOverlay.classList.contains('is-open')) {
                 closeModal(modalOverlay);
             }

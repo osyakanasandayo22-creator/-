@@ -1056,6 +1056,109 @@ textarea,
     animation: likePop 0.35s ease;
 }
 
+/* ========== 記事閲覧ビュー（note風・フルページ） ========== */
+.view-article {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-color);
+}
+
+.article-view-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    flex-shrink: 0;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 24px 12px;
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border);
+}
+
+.article-view-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 20px 48px;
+}
+
+.article-body {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+/* 記事ビュー内：カード感をなくし、実際のサイトのように広い面で表示 */
+.article-body .detail-card {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    overflow: visible;
+    animation: none;
+}
+
+.article-body .detail-author-row {
+    padding: 0 0 16px;
+    margin-bottom: 0;
+}
+
+.article-body .detail-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.35;
+    padding: 0 0 16px;
+    margin: 0 0 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.article-body .detail-meta-line {
+    padding: 0 0 20px;
+    margin-bottom: 0;
+}
+
+.article-body .detail-toc {
+    margin: 0 0 24px;
+    padding: 18px 20px;
+    background: var(--bg-elevated);
+    border-radius: 10px;
+}
+
+.article-body .detail-content {
+    padding: 0 0 32px;
+    margin: 0;
+    border-top: none;
+    font-size: 1.0625rem;
+    line-height: 1.9;
+    max-width: 100%;
+}
+
+.article-body .detail-footer {
+    padding: 24px 0 32px;
+    margin: 0;
+    background: transparent;
+    border-top: 1px solid var(--border);
+}
+
+.article-body .detail-reply-section {
+    padding: 32px 0 0;
+    border-top: 1px solid var(--border);
+    background: transparent;
+}
+
+.article-body .detail-reply-list {
+    max-height: none;
+}
+
+@media (min-width: 768px) {
+    .article-view-main {
+        padding: 32px 40px 64px;
+    }
+    .article-body .detail-title {
+        font-size: 2rem;
+    }
+    .article-body .detail-content {
+        font-size: 1.125rem;
+    }
+}
+
 .detail-reply-form {
     display: flex;
     flex-direction: column;
@@ -2554,6 +2657,8 @@ textarea,
     }
     .profile-page-main,
     .settings-page-main { padding-left: 16px; padding-right: 16px; }
+    .article-view-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; }
+    .article-view-main { padding: 16px 16px 48px; }
 
     /* --- 入力時のズーム防止（16px以上でiOSがフォーカス時に自動ズームしない） --- */
     .search-bar input[type="search"],
