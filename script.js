@@ -6,6 +6,10 @@
     const FIRESTORE_COLLECTION = 'posts';
     const FIRESTORE_USERS_COLLECTION = 'users';
     const PROFILE_ICON_OPTIONS = ['👤', '👨', '👩', '🧑', '🎭', '🦊', '🐱', '🐶', '🌟', '✨', '🎨', '📚', '🌸', '🍀'];
+    const PROFILE_ICON_INITIAL = 'initial';
+    const PROFILE_ICON_BG_OPTIONS = [
+        '', '#1a73e8', '#34a853', '#ea4335', '#f9ab00', '#8b5cf6', '#ec4899', '#0ea5e9', '#64748b', '#14b8a6'
+    ];
 
     var db = null;
     var auth = null;
@@ -70,6 +74,9 @@
             authUser.style.display = '';
             if (displayNameEl) displayNameEl.textContent = getDisplayName(auth ? auth.currentUser : null);
             if (postTrigger) postTrigger.style.visibility = '';
+            if (auth && auth.currentUser && db) {
+                loadUserProfile(auth.currentUser.uid).then(function (profile) { updateHeaderAvatar(profile); });
+            }
         } else {
             loginBtn.hidden = false;
             loginBtn.removeAttribute('hidden');
@@ -115,7 +122,8 @@
             likedBy: Array.isArray(t.likedBy) ? t.likedBy : [],
             authorId: t.authorId || '',
             authorDisplayName: t.authorDisplayName || '',
-            authorIcon: t.authorIcon || '👤'
+            authorIcon: t.authorIcon || '👤',
+            authorIconBg: t.authorIconBg || ''
         };
     }
 
@@ -184,7 +192,8 @@
                     likedBy: d.likedBy,
                     authorId: d.authorId,
                     authorDisplayName: d.authorDisplayName,
-                    authorIcon: d.authorIcon
+                    authorIcon: d.authorIcon,
+                    authorIconBg: d.authorIconBg
                 }));
             });
             return list;
@@ -192,13 +201,25 @@
     }
 
     function loadUserProfile(uid) {
-        if (!db || !uid) return Promise.resolve({ icon: '👤' });
+        if (!db || !uid) return Promise.resolve({ icon: '👤', iconBg: '' });
         return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).get()
             .then(function (doc) {
                 var d = doc.data();
-                return { icon: (d && d.icon) || '👤' };
+                return { icon: (d && d.icon) || '👤', iconBg: (d && d.iconBg) || '' };
             })
-            .catch(function () { return { icon: '👤' }; });
+            .catch(function () { return { icon: '👤', iconBg: '' }; });
+    }
+
+    function getAuthorIconHtml(icon, iconBg, displayName, iconClass) {
+        iconClass = iconClass || 'card-author-icon';
+        var isInitial = icon === PROFILE_ICON_INITIAL;
+        var content = isInitial
+            ? _escape((displayName || '?').trim().charAt(0) || '?')
+            : _escape(icon || '👤');
+        var style = '';
+        if (iconBg) style = ' style="background-color:' + _escape(iconBg) + (isInitial ? ';color:#fff' : '') + '"';
+        var extraClass = isInitial ? ' ' + iconClass + '--initial' : '';
+        return '<span class="' + _escape(iconClass) + extraClass + '" aria-hidden="true"' + style + '>' + content + '</span>';
     }
 
     function saveUserProfile(uid, data) {
@@ -520,13 +541,13 @@
             const liked = isLikedByMe(thought);
             const likeImgSrc = getLikeIconSrc(liked);
             const authorName = thought.authorDisplayName || '匿名';
-            const authorIcon = thought.authorIcon || '👤';
+            const authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
             const card = document.createElement('div');
             card.className = 'card';
             card.dataset.id = thought.id;
             card.innerHTML =
                 '<div class="card-author">' +
-                '<span class="card-author-icon" aria-hidden="true">' + _escape(authorIcon) + '</span>' +
+                authorIconHtml +
                 '<span class="card-author-name">' + _escape(authorName) + '</span>' +
                 '</div>' +
                 '<h3>' + _escape(thought.title) + '</h3>' +
@@ -609,13 +630,13 @@
               '</div>'
             : '';
         var detailAuthorName = item.authorDisplayName || '匿名';
-        var detailAuthorIcon = item.authorIcon || '👤';
+        var detailAuthorIconHtml = getAuthorIconHtml(item.authorIcon, item.authorIconBg, detailAuthorName, 'detail-author-icon');
         var detailLiked = isLikedByMe(item);
         var detailLikeImgSrc = getLikeIconSrc(detailLiked);
         modalBody.innerHTML =
             '<article class="detail-card">' +
             '<div class="detail-author">' +
-            '<span class="detail-author-icon" aria-hidden="true">' + _escape(detailAuthorIcon) + '</span>' +
+            detailAuthorIconHtml +
             '<span class="detail-author-name">' + _escape(detailAuthorName) + '</span>' +
             '</div>' +
             '<h2 class="detail-title">' + _escape(item.title) + '</h2>' +
@@ -676,8 +697,8 @@
     }
 
     function renderProfilePage(profile) {
-        profile = profile || { icon: '👤' };
-        var avatarEl = document.getElementById('profile-page-avatar');
+        profile = profile || { icon: '👤', iconBg: '' };
+        var avatarWrap = document.getElementById('profile-page-avatar');
         var nameEl = document.getElementById('profile-page-name');
         var followersEl = document.getElementById('profile-followers-count');
         var followingEl = document.getElementById('profile-following-count');
@@ -686,7 +707,7 @@
         if (!nameEl || !listEl) return;
         var user = auth && auth.currentUser ? auth.currentUser : null;
         var displayName = user ? getDisplayName(user) : 'ログイン中';
-        if (avatarEl) avatarEl.textContent = profile.icon || '👤';
+        if (avatarWrap) avatarWrap.outerHTML = getAuthorIconHtml(profile.icon, profile.iconBg, displayName, 'profile-page-avatar');
         nameEl.textContent = displayName;
         if (followersEl) followersEl.textContent = '0';
         if (followingEl) followingEl.textContent = '0';
@@ -702,13 +723,13 @@
                 var liked = isLikedByMe(thought);
                 var likeImgSrc = getLikeIconSrc(liked);
                 var authorName = thought.authorDisplayName || '匿名';
-                var authorIcon = thought.authorIcon || '👤';
+                var authorIconHtml = getAuthorIconHtml(thought.authorIcon, thought.authorIconBg, authorName, 'card-author-icon');
                 var card = document.createElement('div');
                 card.className = 'card profile-page-card-item';
                 card.dataset.id = thought.id;
                 card.innerHTML =
                     '<div class="card-author">' +
-                    '<span class="card-author-icon" aria-hidden="true">' + _escape(authorIcon) + '</span>' +
+                    authorIconHtml +
                     '<span class="card-author-name">' + _escape(authorName) + '</span>' +
                     '</div>' +
                     '<h3>' + _escape(thought.title) + '</h3>' +
@@ -759,14 +780,17 @@
         var overlay = document.getElementById('profile-settings-overlay');
         var nameInput = document.getElementById('profile-settings-display-name');
         var pickerEl = document.getElementById('profile-icon-picker');
+        var bgPickerEl = document.getElementById('profile-icon-bg-picker');
         var errorEl = document.getElementById('profile-settings-error');
         if (!overlay || !nameInput || !pickerEl) return;
         nameInput.value = getDisplayName(auth.currentUser);
         if (errorEl) errorEl.hidden = true;
         pickerEl.innerHTML = '';
+        if (bgPickerEl) bgPickerEl.innerHTML = '';
         var uid = auth.currentUser.uid;
         loadUserProfile(uid).then(function (profile) {
             var currentIcon = profile.icon || '👤';
+            var currentBg = profile.iconBg || '';
             PROFILE_ICON_OPTIONS.forEach(function (emoji) {
                 var btn = document.createElement('button');
                 btn.type = 'button';
@@ -779,6 +803,39 @@
                 });
                 pickerEl.appendChild(btn);
             });
+            var initialBtn = document.createElement('button');
+            initialBtn.type = 'button';
+            initialBtn.className = 'profile-icon-option profile-icon-option--initial' + (currentIcon === PROFILE_ICON_INITIAL ? ' selected' : '');
+            initialBtn.textContent = (getDisplayName(auth.currentUser) || '?').trim().charAt(0) || '頭';
+            initialBtn.setAttribute('data-icon', PROFILE_ICON_INITIAL);
+            initialBtn.title = '表示名の頭文字';
+            initialBtn.addEventListener('click', function () {
+                pickerEl.querySelectorAll('.profile-icon-option').forEach(function (b) { b.classList.remove('selected'); });
+                initialBtn.classList.add('selected');
+                var n = (nameInput.value || '').trim().charAt(0) || '?';
+                initialBtn.textContent = n;
+            });
+            pickerEl.appendChild(initialBtn);
+            nameInput.oninput = function () {
+                var sel = pickerEl.querySelector('.profile-icon-option[data-icon="' + PROFILE_ICON_INITIAL + '"].selected');
+                if (sel) sel.textContent = (nameInput.value || '').trim().charAt(0) || '?';
+            };
+            if (bgPickerEl) {
+                PROFILE_ICON_BG_OPTIONS.forEach(function (bg) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'profile-icon-bg-option' + (bg === currentBg ? ' selected' : '');
+                    b.setAttribute('data-bg', bg);
+                    b.style.backgroundColor = bg || 'var(--bg-elevated)';
+                    if (!bg) b.textContent = '—';
+                    b.title = bg ? bg : 'デフォルト';
+                    b.addEventListener('click', function () {
+                        bgPickerEl.querySelectorAll('.profile-icon-bg-option').forEach(function (x) { x.classList.remove('selected'); });
+                        b.classList.add('selected');
+                    });
+                    bgPickerEl.appendChild(b);
+                });
+            }
         });
         overlay.hidden = false;
         overlay.style.display = 'block';
@@ -798,10 +855,13 @@
         if (!auth || !auth.currentUser) return;
         var nameInput = document.getElementById('profile-settings-display-name');
         var pickerEl = document.getElementById('profile-icon-picker');
+        var bgPickerEl = document.getElementById('profile-icon-bg-picker');
         var errorEl = document.getElementById('profile-settings-error');
         var displayName = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
         var selectedBtn = pickerEl && pickerEl.querySelector('.profile-icon-option.selected');
         var icon = selectedBtn ? selectedBtn.getAttribute('data-icon') : '👤';
+        var selectedBg = bgPickerEl && bgPickerEl.querySelector('.profile-icon-bg-option.selected');
+        var iconBg = selectedBg ? (selectedBg.getAttribute('data-bg') || '') : '';
         if (errorEl) errorEl.hidden = true;
         var uid = auth.currentUser.uid;
         var p = Promise.resolve();
@@ -809,11 +869,14 @@
             p = auth.currentUser.updateProfile({ displayName: displayName || '' });
         }
         p.then(function () {
-            return saveUserProfile(uid, { icon: icon });
+            return saveUserProfile(uid, { icon: icon, iconBg: iconBg });
         }).then(function () {
             closeProfileSettingsModal();
             updateAuthUI();
-            loadUserProfile(uid).then(function (profile) { renderProfilePage(profile); });
+            loadUserProfile(uid).then(function (profile) {
+                renderProfilePage(profile);
+                updateHeaderAvatar(profile);
+            });
             showToast('プロフィールを更新しました');
         }).catch(function (err) {
             if (errorEl) {
@@ -821,6 +884,14 @@
                 errorEl.hidden = false;
             }
         });
+    }
+
+    function updateHeaderAvatar(profile) {
+        if (!profile) return;
+        var avatarEl = document.querySelector('.profile-avatar');
+        if (!avatarEl) return;
+        var displayName = auth && auth.currentUser ? getDisplayName(auth.currentUser) : '';
+        avatarEl.outerHTML = getAuthorIconHtml(profile.icon, profile.iconBg, displayName, 'profile-avatar');
     }
 
     function closeProfileView() {
@@ -903,8 +974,9 @@
 
         var uid = auth && auth.currentUser ? auth.currentUser.uid : '';
         var displayName = auth && auth.currentUser ? getDisplayName(auth.currentUser) : '';
-        function doSave(authorIcon) {
+        function doSave(authorIcon, authorIconBg) {
             authorIcon = authorIcon || '👤';
+            authorIconBg = authorIconBg || '';
             if (editingId) {
                 var item = thoughts.find(function (t) { return t.id === editingId; });
                 if (item) {
@@ -912,7 +984,7 @@
                     item.content = content;
                     item.tags = tags;
                     item.updatedAt = _now();
-                    if (uid) { item.authorId = uid; item.authorDisplayName = displayName; item.authorIcon = authorIcon; }
+                    if (uid) { item.authorId = uid; item.authorDisplayName = displayName; item.authorIcon = authorIcon; item.authorIconBg = authorIconBg; }
                 }
                 showToast('更新しました');
             } else {
@@ -927,7 +999,8 @@
                     likedBy: [],
                     authorId: uid,
                     authorDisplayName: displayName,
-                    authorIcon: authorIcon
+                    authorIcon: authorIcon,
+                    authorIconBg: authorIconBg
                 });
                 showToast('投稿しました');
             }
@@ -942,9 +1015,9 @@
             updateCharCounts();
         }
         if (uid && db) {
-            loadUserProfile(uid).then(function (profile) { doSave(profile.icon); });
+            loadUserProfile(uid).then(function (profile) { doSave(profile.icon, profile.iconBg); });
         } else {
-            doSave('👤');
+            doSave('👤', '');
         }
     }
 

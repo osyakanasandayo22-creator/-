@@ -240,6 +240,12 @@ body {
     flex-shrink: 0;
 }
 
+.card-author-icon--initial {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #fff;
+}
+
 .card-author-name {
     font-size: 0.8125rem;
     color: var(--text-sub);
@@ -517,6 +523,12 @@ body {
     flex-shrink: 0;
 }
 
+.detail-author-icon--initial {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+}
+
 .detail-author-name {
     font-size: 0.9375rem;
     color: var(--text-sub);
@@ -638,6 +650,19 @@ body {
 .profile-avatar {
     font-size: 1.1rem;
     line-height: 1;
+    width: 1.5em;
+    height: 1.5em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elevated);
+    border-radius: 50%;
+}
+
+.profile-avatar--initial {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #fff;
 }
 
 .profile-email,
@@ -748,6 +773,12 @@ body {
     border: 2px solid var(--border);
 }
 
+.profile-page-avatar--initial {
+    font-weight: 700;
+    font-size: 2rem;
+    color: #fff;
+}
+
 .profile-page-name {
     font-size: 1.35rem;
     font-weight: 600;
@@ -849,6 +880,41 @@ body {
 .profile-icon-option.selected {
     border-color: var(--accent);
     background: var(--bg-color);
+}
+
+.profile-icon-option--initial {
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.profile-icon-bg-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.profile-icon-bg-option {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+}
+
+.profile-icon-bg-option:hover {
+    transform: scale(1.08);
+}
+
+.profile-icon-bg-option.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+.profile-icon-bg-option:first-child {
+    border-style: dashed;
 }
 
 .profile-settings-form .auth-input {
