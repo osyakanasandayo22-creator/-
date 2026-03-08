@@ -1937,15 +1937,47 @@ textarea,
 
 /* ========== レスポンシブ（スマホ対応） ========== */
 @media (max-width: 480px) {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    /* --- レイアウト・余白 --- */
     .site-header { padding: 12px 14px; }
     .feed { padding: 0 14px 80px; }
+    .search-bar { gap: 8px; margin-top: 10px; }
+    .search-bar input[type="search"] { min-width: 0; }
     .modal-content { padding: 24px 16px; }
     .card { padding: 16px 18px; }
     .editor-page-header { padding: 12px 16px 16px; }
     .editor-header-row--meta .editor-tags-input { min-width: 0; }
     .editor-main { padding: 0 14px 16px; }
+    .profile-page-main,
+    .settings-page-main { padding-left: 16px; padding-right: 16px; }
 
-    /* 削除確認ダイアログ：余白とタッチしやすいボタン */
+    /* --- 入力時のズーム防止（16px以上でiOSがフォーカス時に自動ズームしない） --- */
+    .search-bar input[type="search"],
+    .search-bar select,
+    .editor-title-input,
+    .editor-tags-input,
+    .contact-input,
+    .contact-textarea,
+    .auth-form .auth-input,
+    .profile-settings-form .auth-input,
+    .profile-settings-display-name-wrap .auth-input,
+    .detail-reply-textarea,
+    .editor-main .editor-body[contenteditable="true"] {
+        font-size: 16px !important;
+    }
+    .search-bar input[type="search"] { min-height: 44px; }
+    .search-bar select { min-height: 44px; }
+    .tool-select {
+        min-height: 44px;
+        min-width: 0;
+        font-size: 16px !important;
+    }
+
+    /* --- 削除確認ダイアログ：余白とタッチしやすいボタン --- */
     .confirm-overlay { padding: 16px; }
     .confirm-dialog { padding: 20px; max-width: none; }
     .confirm-dialog-actions {
@@ -1958,11 +1990,6 @@ textarea,
         padding: 10px 20px;
     }
 
-    /* ツールバー・フォント選択：タップしやすい高さ */
+    /* --- ツールバー・フォント選択：タップしやすい高さ --- */
     .editor-toolbar-wrap .toolbar { padding: 12px 14px; gap: 6px; }
-    .tool-select {
-        min-height: 44px;
-        min-width: 0;
-        font-size: 1rem; /* iOSでズーム防止 */
-    }
 }
