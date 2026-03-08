@@ -1943,8 +1943,15 @@
     // イベント
     var siteTitle = document.querySelector('.site-title');
     if (siteTitle) {
-        siteTitle.setAttribute('title', 'タップで更新');
-        siteTitle.addEventListener('click', function () { doRefresh(); });
+        siteTitle.setAttribute('title', 'タップで最上部へ／最上部なら更新');
+        siteTitle.addEventListener('click', function () {
+            var scrollTop = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+            if (scrollTop <= 20) {
+                doRefresh();
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
     }
 
     /* スマホ：一番上で下へスクロール（プルダウン）で更新（X/Twitter風） */
