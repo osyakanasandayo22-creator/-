@@ -1036,6 +1036,121 @@ body {
     min-width: 120px;
 }
 
+/* ========== 設定ページ ========== */
+.view-settings {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--bg-color);
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.settings-page-main {
+    flex: 1;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+    width: 100%;
+}
+
+.settings-page-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 0 0 24px;
+    color: var(--text-main);
+}
+
+.settings-section {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.settings-section:last-of-type {
+    border-bottom: none;
+}
+
+.settings-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--text-main);
+}
+
+.settings-section-desc {
+    font-size: 0.9375rem;
+    color: var(--text-sub);
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.contact-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.contact-input,
+.contact-textarea {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-family: var(--font-sans);
+    background: var(--bg-color);
+    color: var(--text-main);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.contact-input:focus,
+.contact-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+.contact-textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.contact-char-count {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+}
+
+.contact-form-error {
+    font-size: 0.875rem;
+    color: #c5221f;
+    margin: 0;
+}
+
+.contact-submit-btn {
+    margin-top: 8px;
+    align-self: flex-start;
+}
+
+.terms-content {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--text-main);
+}
+
+.terms-content p {
+    margin: 0 0 12px;
+}
+
+.terms-content p:last-child {
+    margin-bottom: 0;
+}
+
 /* プロフィール設定モーダル */
 .profile-settings-overlay {
     display: none;

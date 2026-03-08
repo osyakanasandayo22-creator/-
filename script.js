@@ -162,6 +162,7 @@
     const viewFeed = document.getElementById('view-feed');
     const viewEditor = document.getElementById('view-editor');
     const viewProfile = document.getElementById('view-profile');
+    const viewSettings = document.getElementById('view-settings');
     const filterSort = document.getElementById('filter-sort');
     const searchInput = document.getElementById('search-input');
     const filterTag = document.getElementById('filter-tag');
@@ -1401,6 +1402,66 @@
         document.body.style.overflow = '';
     }
 
+    function openSettingsView() {
+        if (viewFeed) viewFeed.hidden = true;
+        if (viewEditor) viewEditor.hidden = true;
+        if (viewProfile) viewProfile.hidden = true;
+        if (viewSettings) {
+            viewSettings.hidden = false;
+            viewSettings.style.display = 'flex';
+        }
+        document.body.style.overflow = '';
+    }
+
+    function closeSettingsView() {
+        if (viewSettings) {
+            viewSettings.hidden = true;
+            viewSettings.style.display = 'none';
+        }
+        if (viewFeed) viewFeed.hidden = false;
+        document.body.style.overflow = '';
+    }
+
+    function updateContactCharCount() {
+        var textarea = document.getElementById('contact-message');
+        var countEl = document.getElementById('contact-char-count');
+        if (textarea && countEl) {
+            var len = (textarea.value || '').length;
+            countEl.textContent = len + ' / 1000';
+        }
+    }
+
+    function handleContactSubmit(e) {
+        e.preventDefault();
+        var emailEl = document.getElementById('contact-email');
+        var messageEl = document.getElementById('contact-message');
+        var errorEl = document.getElementById('contact-form-error');
+        var email = (emailEl && emailEl.value) ? emailEl.value.trim() : '';
+        var message = (messageEl && messageEl.value) ? messageEl.value.trim() : '';
+        if (errorEl) errorEl.hidden = true;
+        if (!email) {
+            if (errorEl) {
+                errorEl.textContent = 'メールアドレスを入力してください。';
+                errorEl.hidden = false;
+            }
+            return;
+        }
+        if (!message) {
+            if (errorEl) {
+                errorEl.textContent = 'お問い合わせ内容を入力してください。';
+                errorEl.hidden = false;
+            }
+            return;
+        }
+        var nameEl = document.getElementById('contact-name');
+        var name = (nameEl && nameEl.value) ? nameEl.value.trim() : '';
+        var subject = encodeURIComponent('PhiloStream お問い合わせ');
+        var body = encodeURIComponent('お名前: ' + name + '\nメール: ' + email + '\n\n' + message);
+        var mailto = 'mailto:?subject=' + subject + '&body=' + body;
+        window.location.href = mailto;
+        showToast('メールソフトで送信してください。');
+    }
+
     function openPostModal(editId) {
         if (!isLoggedIn()) {
             showToast('ログインすると投稿・編集できます');
@@ -1662,6 +1723,8 @@
                 closeLoginModal();
             } else if (profileSettingsOverlay && !profileSettingsOverlay.hidden) {
                 closeProfileSettingsModal();
+            } else if (viewSettings && !viewSettings.hidden) {
+                closeSettingsView();
             } else if (viewProfile && !viewProfile.hidden) {
                 closeProfileView();
             } else if (viewEditor && !viewEditor.hidden) {
@@ -1744,8 +1807,19 @@
         closeProfileDropdown();
         openProfileView();
     });
+    var profileSettingsMenuBtn = document.getElementById('profile-settings-menu-btn');
+    if (profileSettingsMenuBtn) profileSettingsMenuBtn.addEventListener('click', function () {
+        closeProfileDropdown();
+        openSettingsView();
+    });
     var profileBackBtn = document.getElementById('profile-back-btn');
     if (profileBackBtn) profileBackBtn.addEventListener('click', closeProfileView);
+    var settingsBackBtn = document.getElementById('settings-back-btn');
+    if (settingsBackBtn) settingsBackBtn.addEventListener('click', closeSettingsView);
+    var contactForm = document.getElementById('contact-form');
+    if (contactForm) contactForm.addEventListener('submit', handleContactSubmit);
+    var contactMessage = document.getElementById('contact-message');
+    if (contactMessage) contactMessage.addEventListener('input', updateContactCharCount);
     var profileSettingsBtn = document.getElementById('profile-settings-btn');
     if (profileSettingsBtn) profileSettingsBtn.addEventListener('click', openProfileSettingsModal);
     var profileSettingsClose = document.getElementById('profile-settings-close');

@@ -27,6 +27,7 @@
                             </button>
                             <div class="profile-dropdown" id="profile-dropdown" role="menu" hidden>
                                 <button type="button" class="profile-dropdown-item" id="profile-page-btn" role="menuitem">プロフィール</button>
+                                <button type="button" class="profile-dropdown-item" id="profile-settings-menu-btn" role="menuitem">設定</button>
                                 <button type="button" class="profile-dropdown-item" id="profile-logout" role="menuitem">ログアウト</button>
                             </div>
                         </span>
@@ -86,6 +87,50 @@
                     <!-- 投稿カードは script で挿入 -->
                 </div>
                 <p class="profile-posts-empty" id="profile-posts-empty" hidden>まだ投稿がありません。</p>
+            </section>
+        </main>
+    </div>
+
+    <!-- ========== 設定ビュー ========== -->
+    <div class="view view-settings" id="view-settings" hidden>
+        <header class="profile-page-header">
+            <button type="button" class="editor-back-btn" id="settings-back-btn" aria-label="一覧に戻る">← 戻る</button>
+        </header>
+        <main class="settings-page-main">
+            <h2 class="settings-page-title">設定</h2>
+
+            <section class="settings-section" aria-labelledby="contact-form-title">
+                <h3 id="contact-form-title" class="settings-section-title">お問い合わせフォーム</h3>
+                <p class="settings-section-desc">ご質問・ご要望は以下のフォームからお送りください。</p>
+                <form class="contact-form" id="contact-form" novalidate>
+                    <label class="contact-label" for="contact-name">お名前</label>
+                    <input type="text" id="contact-name" class="contact-input" placeholder="お名前" maxlength="50" autocomplete="name">
+                    <label class="contact-label" for="contact-email">メールアドレス</label>
+                    <input type="email" id="contact-email" class="contact-input" placeholder="example@email.com" required autocomplete="email">
+                    <label class="contact-label" for="contact-message">お問い合わせ内容</label>
+                    <textarea id="contact-message" class="contact-textarea" placeholder="お問い合わせ内容をご記入ください" rows="5" maxlength="1000" required></textarea>
+                    <span class="char-count contact-char-count" id="contact-char-count">0 / 1000</span>
+                    <p class="contact-form-error" id="contact-form-error" hidden></p>
+                    <button type="submit" class="btn primary contact-submit-btn">送信する</button>
+                </form>
+            </section>
+
+            <section class="settings-section" aria-labelledby="terms-title">
+                <h3 id="terms-title" class="settings-section-title">利用規約</h3>
+                <div class="terms-content" id="terms-content">
+                    <p><strong>第1条（適用）</strong></p>
+                    <p>本規約は、PhiloStream（以下「本サービス」）の利用に関する条件を定めるものです。ユーザーは本規約に同意の上、本サービスをご利用ください。</p>
+                    <p><strong>第2条（利用登録）</strong></p>
+                    <p>本サービスでは、ログイン機能により投稿・いいね・フォロー等が利用できます。登録情報は正確にご入力ください。</p>
+                    <p><strong>第3条（禁止事項）</strong></p>
+                    <p>ユーザーは、法令に反する行為、他者を誹謗中傷する行為、不正アクセス、その他本サービスが不適切と判断する行為を行ってはなりません。</p>
+                    <p><strong>第4条（コンテンツの取り扱い）</strong></p>
+                    <p>ユーザーが投稿したコンテンツの著作権はユーザーに帰属します。ただし、本サービスにおいて表示・共有するための利用許諾を本サービスに付与したものとします。</p>
+                    <p><strong>第5条（免責）</strong></p>
+                    <p>本サービスは現状のまま提供されます。サービス内容の変更・中断・終了により生じた損害について、運営は責任を負いかねます。</p>
+                    <p><strong>第6条（規約の変更）</strong></p>
+                    <p>本規約は予告なく変更される場合があります。変更後の利用により、変更に同意したものとみなします。</p>
+                </div>
             </section>
         </main>
     </div>
