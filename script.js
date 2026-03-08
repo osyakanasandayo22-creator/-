@@ -48,7 +48,11 @@
         var authUser = document.getElementById('auth-user');
         var authEmail = document.getElementById('auth-email');
         var postTrigger = document.getElementById('post-trigger');
+        var profileDropdown = document.getElementById('profile-dropdown');
         if (!loginBtn || !authUser) return;
+        if (profileDropdown) profileDropdown.hidden = true;
+        var trigger = document.getElementById('profile-trigger');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
         if (isLoggedIn()) {
             loginBtn.hidden = true;
             authUser.hidden = false;
@@ -59,6 +63,22 @@
             authUser.hidden = true;
             if (postTrigger) postTrigger.style.visibility = '';
         }
+    }
+
+    function closeProfileDropdown() {
+        var dropdown = document.getElementById('profile-dropdown');
+        var trigger = document.getElementById('profile-trigger');
+        if (dropdown) dropdown.hidden = true;
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleProfileDropdown() {
+        var dropdown = document.getElementById('profile-dropdown');
+        var trigger = document.getElementById('profile-trigger');
+        if (!dropdown || !trigger) return;
+        var isOpen = !dropdown.hidden;
+        dropdown.hidden = isOpen;
+        trigger.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
     }
 
     function _uid() {
@@ -835,10 +855,20 @@
 
     var loginBtn = document.getElementById('login-btn');
     if (loginBtn) loginBtn.addEventListener('click', showLoginModal);
-    var logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) logoutBtn.addEventListener('click', function () {
+    var profileTrigger = document.getElementById('profile-trigger');
+    if (profileTrigger) profileTrigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleProfileDropdown();
+    });
+    var profileLogout = document.getElementById('profile-logout');
+    if (profileLogout) profileLogout.addEventListener('click', function () {
         if (auth) auth.signOut();
+        closeProfileDropdown();
         showToast('ログアウトしました');
+    });
+    document.addEventListener('click', function (e) {
+        var wrap = document.getElementById('auth-user');
+        if (wrap && !wrap.contains(e.target)) closeProfileDropdown();
     });
     var authClose = document.getElementById('auth-close');
     if (authClose) authClose.addEventListener('click', closeLoginModal);

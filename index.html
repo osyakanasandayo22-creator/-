@@ -19,7 +19,16 @@
                 <div class="header-actions">
                     <span class="auth-status" id="auth-status">
                         <button type="button" class="btn btn--outline btn-sm" id="login-btn">ログイン</button>
-                        <span class="auth-user" id="auth-user" hidden><span class="auth-email" id="auth-email"></span> <button type="button" class="btn btn--outline btn-sm" id="logout-btn">ログアウト</button></span>
+                        <span class="auth-user profile-wrap" id="auth-user" hidden>
+                            <button type="button" class="profile-trigger" id="profile-trigger" aria-haspopup="true" aria-expanded="false" title="プロフィール">
+                                <span class="profile-avatar" aria-hidden="true">👤</span>
+                                <span class="profile-email" id="auth-email"></span>
+                                <span class="profile-chevron" aria-hidden="true">▼</span>
+                            </button>
+                            <div class="profile-dropdown" id="profile-dropdown" role="menu" hidden>
+                                <button type="button" class="profile-dropdown-item" id="profile-logout" role="menuitem">ログアウト</button>
+                            </div>
+                        </span>
                     </span>
                     <button type="button" class="icon-btn" id="theme-toggle" title="テーマ切替" aria-label="テーマ切替">◐</button>
                     <button type="button" class="icon-btn" id="export-btn" title="エクスポート" aria-label="エクスポート">↓</button>
