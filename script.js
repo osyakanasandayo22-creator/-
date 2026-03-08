@@ -1944,9 +1944,8 @@
 
     if (db) {
         loadFromFirestore().then(function (data) {
-            if (data && data.length > 0) {
-                thoughts = data;
-            }
+            /* Firestore を正とする（空でも反映。コンソールで削除したら画面も空になる） */
+            thoughts = Array.isArray(data) ? data : [];
             save();
             renderFeed();
             renderTagFilter();
