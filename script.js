@@ -1401,6 +1401,7 @@
         var bioEl = document.getElementById('profile-page-bio');
         var followersEl = document.getElementById('profile-followers-count');
         var followingEl = document.getElementById('profile-following-count');
+        var postsCountEl = document.getElementById('profile-posts-count');
         var listEl = document.getElementById('profile-posts-list');
         var emptyEl = document.getElementById('profile-posts-empty');
         var settingsBtn = document.getElementById('profile-settings-btn');
@@ -1430,6 +1431,7 @@
         }
         if (followersEl) followersEl.textContent = String(followersCount);
         if (followingEl) followingEl.textContent = String(isOtherUser ? followingCount : (profile.following && profile.following.length) || 0);
+        if (postsCountEl) postsCountEl.textContent = String(postsList ? postsList.length : 0);
 
         if (settingsBtn) {
             settingsBtn.hidden = isOtherUser;
