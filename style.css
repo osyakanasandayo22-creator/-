@@ -81,6 +81,13 @@ textarea,
     transition: background-color 0.2s, border-color 0.2s, transform 0.25s ease-out;
 }
 
+@media (min-width: 1024px) {
+    .site-header {
+        padding-left: 40px;
+        padding-right: 40px;
+    }
+}
+
 /* 下スクロール時はたたんだ状態（上スクロールでだんだん広がる） */
 .site-header.site-header--hidden {
     transform: translateY(-100%);
@@ -94,6 +101,13 @@ textarea,
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+}
+
+@media (min-width: 1024px) {
+    .header-inner {
+        max-width: 1200px;
+        padding: 0 40px;
+    }
 }
 
 .site-title {
@@ -163,6 +177,13 @@ textarea,
     align-items: center;
 }
 
+@media (min-width: 1024px) {
+    .search-bar {
+        max-width: 1200px;
+        padding: 0 40px;
+    }
+}
+
 .search-bar input[type="search"] {
     flex: 1;
     min-width: 160px;
@@ -204,9 +225,34 @@ textarea,
     padding: 0 20px 80px;
 }
 
+@media (min-width: 1024px) {
+    .feed {
+        max-width: 1200px;
+        width: 100%;
+        margin: 32px auto 80px;
+        padding: 0 40px 80px;
+    }
+}
+
 .feed-timeline {
     margin: 0;
     padding: 0;
+}
+
+@media (min-width: 1024px) {
+    .feed-timeline {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px 32px;
+    }
+    .feed-timeline .timeline-heading,
+    .feed-timeline .empty-state {
+        grid-column: 1 / -1;
+    }
+    .feed-timeline .card {
+        margin-bottom: 0;
+        min-height: 140px;
+    }
 }
 
 .timeline-heading {
@@ -594,6 +640,13 @@ textarea,
     max-width: 520px;
     margin: 32px auto 48px;
     padding: 0 20px;
+}
+
+@media (min-width: 1024px) {
+    .modal-content {
+        max-width: 720px;
+        padding: 0 40px;
+    }
 }
 
 .close-btn {
@@ -1095,6 +1148,18 @@ textarea,
     width: 100%;
 }
 
+@media (min-width: 1024px) {
+    .profile-page-main {
+        max-width: 1200px;
+        padding: 0 40px 48px;
+    }
+    .profile-posts-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px 32px;
+    }
+}
+
 /* note風プロフィールカード：余白多め・タイポグラフィ重視 */
 .profile-page-card {
     text-align: center;
@@ -1362,6 +1427,13 @@ textarea,
     margin: 0 auto;
     padding: 24px 20px 48px;
     width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .settings-page-main {
+        max-width: 1200px;
+        padding: 24px 40px 48px;
+    }
 }
 
 .settings-panel {
