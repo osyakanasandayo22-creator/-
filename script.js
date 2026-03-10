@@ -2906,33 +2906,24 @@
         var range = sel.getRangeAt(0);
         var container = range.commonAncestorContainer;
 
-        // 行（ブロック）要素を推定
+        // 行（ブロック）要素を推定（できるだけ editor 直下の要素を選ぶ）
         var block = container.nodeType === 3 ? container.parentElement : container;
+        while (block && block !== editor && !block.tagName) block = block.parentElement;
         while (block && block !== editor && !/^H[1-6]$/.test(block.tagName || '') && block.tagName !== 'DIV' && block.tagName !== 'P' && block.tagName !== 'LI') {
+            block = block.parentElement;
+        }
+        while (block && block !== editor && block.parentNode && block.parentNode !== editor) {
             block = block.parentElement;
         }
 
         // ブロックが特定できなかった場合：エディタ直下にテキストだけがあるケースを扱う
         if (!block || block === editor) {
-            var fullText = (editor.textContent || '').replace(/\u200B/g, '').trim();
-            var m2root = fullText.match(/^##\s+(.+)/);
-            var m1root = !m2root && fullText.match(/^#\s+(.+)/);
-            if (!m1root && !m2root) return;
-
-            var tagRoot = m2root ? 'h3' : 'h2';
-            var titleRoot = (m2root ? m2root[1] : m1root[1]) || '';
-            var hRoot = document.createElement(tagRoot);
-            hRoot.textContent = titleRoot;
-            editor.innerHTML = '';
-            editor.appendChild(hRoot);
-
-            var rangeRoot = document.createRange();
-            rangeRoot.selectNodeContents(hRoot);
-            rangeRoot.collapse(false);
-            sel.removeAllRanges();
-            sel.addRange(rangeRoot);
+            // 既存内容を壊さないため、editor 全消去はしない（このケースはスキップ）
             return;
         }
+
+        // すでに見出しの中にいる場合は変換しない（普通に入力させる）
+        if (/^H[1-6]$/.test(block.tagName || '')) return;
 
         var text = (block.textContent || '').replace(/\u200B/g, '').trim();
         var m2 = text.match(/^##\s+(.+)/);
@@ -2945,7 +2936,8 @@
         var h = document.createElement(tag);
         h.textContent = title;
 
-        editor.replaceChild(h, block);
+        if (block.parentNode) block.parentNode.replaceChild(h, block);
+        else editor.replaceChild(h, block);
 
         var newRange = document.createRange();
         newRange.selectNodeContents(h);
