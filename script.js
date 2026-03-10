@@ -461,18 +461,27 @@
         });
     }
 
-    function findNearestFormatSpan(range, editor) {
-        if (!range || !editor) return null;
+    function updateFormatSpansAlongSelection(kind, value, range, editor) {
+        if (!range || !editor) return false;
         var node = range.commonAncestorContainer || range.startContainer;
-        if (!node) return null;
+        if (!node) return false;
         var el = node.nodeType === 3 ? node.parentElement : node;
+        var updated = false;
         while (el && el !== editor) {
             if (el.nodeType === 1 && el.getAttribute && el.getAttribute('data-fmt') === '1') {
-                return el;
+                if (kind === 'size') {
+                    el.style.fontSize = SIZE_MAP[value] || SIZE_MAP.normal;
+                } else if (kind === 'font') {
+                    el.style.fontFamily = FONT_MAP[value] || FONT_MAP.sans;
+                } else if (kind === 'color') {
+                    if (value) el.style.color = value;
+                    else el.style.color = '';
+                }
+                updated = true;
             }
             el = el.parentElement;
         }
-        return null;
+        return updated;
     }
 
     function formatDoc(cmd, value) {
@@ -540,21 +549,7 @@
         var editor = ctx && ctx.editor;
         var range = ctx && ctx.range;
 
-        var targetSpan = editor ? findNearestFormatSpan(range, editor) : null;
-
-        if (targetSpan) {
-            if (kind === 'size') {
-                targetSpan.style.fontSize = SIZE_MAP[value] || SIZE_MAP.normal;
-            }
-            if (kind === 'font') {
-                targetSpan.style.fontFamily = FONT_MAP[value] || FONT_MAP.sans;
-            }
-            if (kind === 'color') {
-                if (value) targetSpan.style.color = value;
-                else targetSpan.style.color = '';
-            }
-            return;
-        }
+        if (editor && updateFormatSpansAlongSelection(kind, value, range, editor)) return;
 
         insertFormatSpan();
     }
