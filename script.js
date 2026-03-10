@@ -541,7 +541,11 @@
     }
 
     function applyToolbarFormat(kind, value) {
-        if (kind === 'size') editorState.size = value;
+        if (kind === 'size') {
+            // 文字サイズは常に標準（本文）に統一する
+            editorState.size = 'normal';
+            value = 'normal';
+        }
         if (kind === 'font') editorState.font = value;
         if (kind === 'color') editorState.color = value || null;
 
