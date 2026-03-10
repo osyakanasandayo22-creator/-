@@ -461,6 +461,20 @@
         });
     }
 
+    function findNearestFormatSpan(range, editor) {
+        if (!range || !editor) return null;
+        var node = range.commonAncestorContainer || range.startContainer;
+        if (!node) return null;
+        var el = node.nodeType === 3 ? node.parentElement : node;
+        while (el && el !== editor) {
+            if (el.nodeType === 1 && el.getAttribute && el.getAttribute('data-fmt') === '1') {
+                return el;
+            }
+            el = el.parentElement;
+        }
+        return null;
+    }
+
     function formatDoc(cmd, value) {
         var el = document.getElementById('post-content');
         if (el) el.focus();
@@ -521,6 +535,27 @@
         if (kind === 'size') editorState.size = value;
         if (kind === 'font') editorState.font = value;
         if (kind === 'color') editorState.color = value || null;
+
+        var ctx = getEditorSelection();
+        var editor = ctx && ctx.editor;
+        var range = ctx && ctx.range;
+
+        var targetSpan = editor ? findNearestFormatSpan(range, editor) : null;
+
+        if (targetSpan) {
+            if (kind === 'size') {
+                targetSpan.style.fontSize = SIZE_MAP[value] || SIZE_MAP.normal;
+            }
+            if (kind === 'font') {
+                targetSpan.style.fontFamily = FONT_MAP[value] || FONT_MAP.sans;
+            }
+            if (kind === 'color') {
+                if (value) targetSpan.style.color = value;
+                else targetSpan.style.color = '';
+            }
+            return;
+        }
+
         insertFormatSpan();
     }
 
@@ -2419,7 +2454,6 @@
         if (!editor) return;
         editor.focus();
         var tag = level === 2 ? 'h2' : 'h3';
-        var defaultText = level === 2 ? '見出し' : '小見出し';
         var sel = window.getSelection();
         var range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
         if (!range || !editor.contains(range.commonAncestorContainer)) {
@@ -2428,11 +2462,10 @@
             range.collapse(false);
         }
         var el = document.createElement(tag);
-        el.textContent = defaultText;
+        el.innerHTML = '\u200B';
         try {
-            range.collapse(true);
             range.insertNode(el);
-            range.setStartAfter(el);
+            range.setStart(el.firstChild || el, 1);
             range.collapse(true);
             sel.removeAllRanges();
             sel.addRange(range);
@@ -2865,7 +2898,39 @@
     if (filterSort) filterSort.addEventListener('change', renderFeed);
 
     document.getElementById('post-title').addEventListener('input', updateCharCounts);
-    document.getElementById('post-content').addEventListener('input', updateCharCounts);
+    document.getElementById('post-content').addEventListener('input', function (e) {
+        updateCharCounts();
+
+        var editor = e.currentTarget;
+        var sel = window.getSelection();
+        if (!sel || !sel.rangeCount || !editor.contains(sel.anchorNode)) return;
+        var range = sel.getRangeAt(0);
+        var container = range.commonAncestorContainer;
+        var block = container.nodeType === 3 ? container.parentElement : container;
+        while (block && block !== editor && !/^H[1-6]$/.test(block.tagName || '') && block.tagName !== 'DIV' && block.tagName !== 'P') {
+            block = block.parentElement;
+        }
+        if (!block || block === editor) return;
+
+        var text = (block.textContent || '').replace(/\u200B/g, '').trim();
+        var m2 = text.match(/^##\s+(.+)/);
+        var m1 = !m2 && text.match(/^#\s+(.+)/);
+        if (!m1 && !m2) return;
+
+        var tag = m2 ? 'h3' : 'h2';
+        var title = (m2 ? m2[1] : m1[1]) || '';
+
+        var h = document.createElement(tag);
+        h.textContent = title;
+
+        editor.replaceChild(h, block);
+
+        var newRange = document.createRange();
+        newRange.selectNodeContents(h);
+        newRange.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+    });
 
     /* スマホ：キーボード表示時に入力欄・ツールバーが見えるようスクロール */
     function scrollEditorInputIntoView(el, options) {
