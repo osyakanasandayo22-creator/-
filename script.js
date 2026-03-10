@@ -2906,11 +2906,34 @@
         if (!sel || !sel.rangeCount || !editor.contains(sel.anchorNode)) return;
         var range = sel.getRangeAt(0);
         var container = range.commonAncestorContainer;
+
+        // 行（ブロック）要素を推定
         var block = container.nodeType === 3 ? container.parentElement : container;
-        while (block && block !== editor && !/^H[1-6]$/.test(block.tagName || '') && block.tagName !== 'DIV' && block.tagName !== 'P') {
+        while (block && block !== editor && !/^H[1-6]$/.test(block.tagName || '') && block.tagName !== 'DIV' && block.tagName !== 'P' && block.tagName !== 'LI') {
             block = block.parentElement;
         }
-        if (!block || block === editor) return;
+
+        // ブロックが特定できなかった場合：エディタ直下にテキストだけがあるケースを扱う
+        if (!block || block === editor) {
+            var fullText = (editor.textContent || '').replace(/\u200B/g, '').trim();
+            var m2root = fullText.match(/^##\s+(.+)/);
+            var m1root = !m2root && fullText.match(/^#\s+(.+)/);
+            if (!m1root && !m2root) return;
+
+            var tagRoot = m2root ? 'h3' : 'h2';
+            var titleRoot = (m2root ? m2root[1] : m1root[1]) || '';
+            var hRoot = document.createElement(tagRoot);
+            hRoot.textContent = titleRoot;
+            editor.innerHTML = '';
+            editor.appendChild(hRoot);
+
+            var rangeRoot = document.createRange();
+            rangeRoot.selectNodeContents(hRoot);
+            rangeRoot.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(rangeRoot);
+            return;
+        }
 
         var text = (block.textContent || '').replace(/\u200B/g, '').trim();
         var m2 = text.match(/^##\s+(.+)/);
