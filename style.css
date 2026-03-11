@@ -629,6 +629,8 @@ textarea,
 
 .popular-tag-posts .card--compact .card-author {
     margin-bottom: 8px;
+    width: auto;
+    justify-content: flex-start;
 }
 
 .popular-tag-posts .card--compact .card-author-name,
