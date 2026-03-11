@@ -164,6 +164,12 @@
         return liked ? 'images/テーマ白用いいね済み.png' : 'images/黒色いいね通常時.png';
     }
 
+    function updateNotificationIcon() {
+        if (!notificationIconEl) return;
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        notificationIconEl.src = isDark ? 'images/通知黒テーマ用.png' : 'images/通知白テーマ用.png';
+    }
+
     let raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
     let thoughts = Array.isArray(raw) && raw.length > 0 ? raw : [
         { id: _uid(), title: "変化の唯一性", content: "この世で唯一変化しないものは、<b>変化し続ける</b>ということだけである。", tags: ["変化", "存在"], createdAt: _now(), updatedAt: _now() },
@@ -199,6 +205,7 @@
     const notificationListEl = document.getElementById('notification-list');
     const notificationEmptyEl = document.getElementById('notification-empty');
     const notificationBadgeEl = document.getElementById('notification-badge');
+    const notificationIconEl = notificationToggle ? notificationToggle.querySelector('.notification-icon') : null;
     var bannerEl = null;
     var notifications = [];
     var unreadNotificationCount = 0;
@@ -2843,6 +2850,7 @@
     function initTheme() {
         var theme = localStorage.getItem(THEME_KEY) || 'light';
         document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : '');
+        updateNotificationIcon();
     }
 
     function toggleTheme() {
@@ -2850,6 +2858,7 @@
         document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
         localStorage.setItem(THEME_KEY, isDark ? 'light' : 'dark');
         showToast(isDark ? 'ライトモード' : 'ダークモード');
+        updateNotificationIcon();
         renderFeed();
         if (currentDetailId) showDetail(currentDetailId);
         if (viewProfile && !viewProfile.hidden) renderProfilePage();
