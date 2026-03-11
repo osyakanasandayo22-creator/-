@@ -1,6 +1,6 @@
 {
-  "name": "PhiloStream - 哲学を共有する",
-  "short_name": "PhiloStream",
+  "name": "Nodus - 哲学を共有する",
+  "short_name": "Nodus",
   "description": "あなたの哲学を刻む",
   "start_url": "./index.html",
   "display": "standalone",
