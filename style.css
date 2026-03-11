@@ -734,11 +734,6 @@ textarea,
     white-space: nowrap;
 }
 
-/* タイムライン上の通常カードだけ、著者行の右端に三点リーダーを寄せる */
-.feed-timeline .card .card-author {
-    justify-content: space-between;
-}
-
 /* フォロワー500人超の公式バッジ（表示名の横に表示） */
 .verified-badge {
     display: inline-flex;
