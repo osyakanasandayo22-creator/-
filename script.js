@@ -198,8 +198,10 @@
     const notificationPanel = document.getElementById('notification-panel');
     const notificationListEl = document.getElementById('notification-list');
     const notificationEmptyEl = document.getElementById('notification-empty');
+    const notificationBadgeEl = document.getElementById('notification-badge');
     var bannerEl = null;
     var notifications = [];
+    var unreadNotificationCount = 0;
     const deleteConfirmOverlay = document.getElementById('delete-confirm-overlay');
     const deleteConfirmCancel = document.getElementById('delete-confirm-cancel');
     const deleteConfirmOk = document.getElementById('delete-confirm-ok');
@@ -697,11 +699,24 @@
             message: message,
             detailId: options.detailId || null,
             targetUserId: options.targetUserId || null,
-            createdAt: _now()
+            createdAt: _now(),
+            read: false
         };
         notifications.unshift(item);
         if (notifications.length > 50) notifications.length = 50;
+        unreadNotificationCount += 1;
+        updateNotificationBadge();
         renderNotifications();
+    }
+
+    function updateNotificationBadge() {
+        if (!notificationBadgeEl) return;
+        if (unreadNotificationCount <= 0) {
+            notificationBadgeEl.hidden = true;
+            return;
+        }
+        notificationBadgeEl.hidden = false;
+        notificationBadgeEl.textContent = unreadNotificationCount > 99 ? '99+' : String(unreadNotificationCount);
     }
 
     function renderNotifications() {
@@ -3222,6 +3237,11 @@
             e.stopPropagation();
             var isHidden = notificationPanel.hidden;
             notificationPanel.hidden = !isHidden;
+            if (!notificationPanel.hidden) {
+                notifications.forEach(function (n) { n.read = true; });
+                unreadNotificationCount = 0;
+                updateNotificationBadge();
+            }
         });
         var notificationPanelClose = document.getElementById('notification-panel-close');
         if (notificationPanelClose) {

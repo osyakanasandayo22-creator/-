@@ -139,6 +139,10 @@ textarea,
     gap: 8px;
 }
 
+.notification-wrapper {
+    position: relative;
+}
+
 .icon-btn {
     width: 40px;
     height: 40px;
@@ -168,6 +172,21 @@ textarea,
 }
 
 /* ========== 通知パネル ========== */
+.notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    padding: 1px 4px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    text-align: center;
+    box-shadow: 0 0 0 1px var(--bg-color);
+}
+
 .notification-panel {
     position: absolute;
     top: 110%;
