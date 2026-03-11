@@ -734,6 +734,14 @@ textarea,
     white-space: nowrap;
 }
 
+/* カード内では著者行全体を横幅いっぱいにして、右端に三点リーダーを寄せる */
+.card .card-author--clickable {
+    width: 100%;
+    margin: 0;
+    padding: 2px 4px;
+    justify-content: space-between;
+}
+
 /* フォロワー500人超の公式バッジ（表示名の横に表示） */
 .verified-badge {
     display: inline-flex;
