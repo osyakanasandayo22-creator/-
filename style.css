@@ -767,6 +767,19 @@ textarea,
     color: var(--text-main);
 }
 
+@media (max-width: 768px) {
+    .card-title-row {
+        flex-wrap: nowrap;
+    }
+    .card h3 {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
 /* 名著バッジ（いいね数が閾値以上の投稿に表示） */
 .masterpiece-badge {
     display: inline-flex;
