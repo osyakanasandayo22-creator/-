@@ -194,7 +194,12 @@
     const filterTag = document.getElementById('filter-tag');
     const searchHint = document.getElementById('search-hint');
     const toastEl = document.getElementById('toast');
+    const notificationToggle = document.getElementById('notification-toggle');
+    const notificationPanel = document.getElementById('notification-panel');
+    const notificationListEl = document.getElementById('notification-list');
+    const notificationEmptyEl = document.getElementById('notification-empty');
     var bannerEl = null;
+    var notifications = [];
     const deleteConfirmOverlay = document.getElementById('delete-confirm-overlay');
     const deleteConfirmCancel = document.getElementById('delete-confirm-cancel');
     const deleteConfirmOk = document.getElementById('delete-confirm-ok');
@@ -682,6 +687,55 @@
                 });
             } catch (e) { }
         }
+    }
+
+    function addNotification(kind, message, options) {
+        options = options || {};
+        var item = {
+            id: _uid(),
+            kind: kind,
+            message: message,
+            detailId: options.detailId || null,
+            targetUserId: options.targetUserId || null,
+            createdAt: _now()
+        };
+        notifications.unshift(item);
+        if (notifications.length > 50) notifications.length = 50;
+        renderNotifications();
+    }
+
+    function renderNotifications() {
+        if (!notificationListEl || !notificationEmptyEl) return;
+        notificationListEl.innerHTML = '';
+        if (notifications.length === 0) {
+            notificationEmptyEl.hidden = false;
+            return;
+        }
+        notificationEmptyEl.hidden = true;
+        notifications.forEach(function (n) {
+            var li = document.createElement('li');
+            li.className = 'notification-item';
+            li.setAttribute('data-id', n.id);
+            var title = document.createElement('p');
+            title.className = 'notification-item-title';
+            title.textContent = n.message;
+            var meta = document.createElement('p');
+            meta.className = 'notification-item-meta';
+            meta.textContent = formatDate(n.createdAt);
+            var wrapper = document.createElement('div');
+            wrapper.appendChild(title);
+            wrapper.appendChild(meta);
+            li.appendChild(wrapper);
+            li.addEventListener('click', function () {
+                if (n.detailId) {
+                    showDetail(n.detailId);
+                } else if (n.targetUserId) {
+                    openProfileView(n.targetUserId);
+                }
+                if (notificationPanel) notificationPanel.hidden = true;
+            });
+            notificationListEl.appendChild(li);
+        });
     }
 
     function formatDate(iso) {
@@ -1193,6 +1247,7 @@
             item.likes = (typeof item.likes === 'number' ? item.likes : 0) + 1;
             showBanner('高評価しました', 'success');
             showPushNotification('高評価しました', 'お気に入りの一節に高評価を付けました。');
+            addNotification('like', '「' + (item.title || '無題') + '」を高評価しました', { detailId: id });
         } else {
             item.likedBy.splice(idx, 1);
             item.likes = Math.max(0, (typeof item.likes === 'number' ? item.likes : 0) - 1);
@@ -1380,6 +1435,7 @@
                         followBtn.textContent = 'フォロー';
                         followBtn.title = 'フォロー';
                         showBanner('フォローを解除しました', 'info');
+                        addNotification('unfollow', 'フォローを解除しました', { targetUserId: targetUid });
                     }).catch(function (err) {
                         console.error('フォロー解除に失敗:', err);
                         showToast('フォロー解除に失敗しました');
@@ -1390,6 +1446,7 @@
                         followBtn.title = 'フォローを解除';
                         showBanner('フォローしました', 'success');
                         showPushNotification('フォローしました', '新しい哲学者をフォローしました。');
+                        addNotification('follow', '新しい哲学者をフォローしました', { targetUserId: targetUid });
                     }).catch(function (err) {
                         console.error('フォローに失敗:', err);
                         showToast('フォローに失敗しました');
@@ -2047,6 +2104,7 @@
                                 var fc = document.getElementById('profile-followers-count');
                                 if (fc) fc.textContent = String(Math.max(0, parseInt(fc.textContent, 10) - 1));
                                 showBanner('フォローを解除しました', 'info');
+                                addNotification('unfollow', 'フォローを解除しました', { targetUserId: targetUid });
                             }).catch(function (err) {
                                 console.error('フォロー解除に失敗:', err);
                                 showToast('フォロー解除に失敗しました');
@@ -2059,6 +2117,7 @@
                                 if (fc) fc.textContent = String(parseInt(fc.textContent, 10) + 1);
                                 showBanner('フォローしました', 'success');
                                 showPushNotification('フォローしました', '新しい哲学者をフォローしました。');
+                                addNotification('follow', '新しい哲学者をフォローしました', { targetUserId: targetUid });
                             }).catch(function (err) {
                                 console.error('フォローに失敗:', err);
                                 showToast('フォローに失敗しました');
@@ -3106,6 +3165,7 @@
             closeLoginModal();
             showBanner('ログインしました', 'success');
             showPushNotification('ログインしました', 'ようこそ、哲学の世界へ。');
+            addNotification('login', 'ログインしました');
         }).catch(function (err) {
             var msg = err.code === 'auth/user-not-found' ? 'このメールアドレスは登録されていません。' :
                 err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' ? 'パスワードが違います。' :
@@ -3122,6 +3182,7 @@
             closeLoginModal();
             showBanner('アカウントを作成しました', 'success');
             showPushNotification('アカウントを作成しました', '新しい哲学ノートが始まりました。');
+            addNotification('signup', 'アカウントを作成しました');
         }).catch(function (err) {
             var msg = err.code === 'auth/email-already-in-use' ? 'このメールアドレスは既に使われています。' :
                 err.code === 'auth/weak-password' ? 'パスワードは6文字以上にしてください。' :
@@ -3139,6 +3200,7 @@
             closeLoginModal();
             showBanner('ログインしました', 'success');
             showPushNotification('ログインしました', 'ようこそ、哲学の世界へ。');
+            addNotification('login', 'ログインしました');
         }).catch(function (err) {
             if (err.code !== 'auth/popup-closed-by-user') {
                 showAuthError(err.message || 'Googleログインに失敗しました。');
@@ -3155,6 +3217,27 @@
 
     var loginBtn = document.getElementById('login-btn');
     if (loginBtn) loginBtn.addEventListener('click', showLoginModal);
+    if (notificationToggle && notificationPanel) {
+        notificationToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var isHidden = notificationPanel.hidden;
+            notificationPanel.hidden = !isHidden;
+        });
+        var notificationPanelClose = document.getElementById('notification-panel-close');
+        if (notificationPanelClose) {
+            notificationPanelClose.addEventListener('click', function (e) {
+                e.stopPropagation();
+                notificationPanel.hidden = true;
+            });
+        }
+        document.addEventListener('click', function (e) {
+            if (!notificationPanel.hidden) {
+                if (!notificationPanel.contains(e.target) && e.target !== notificationToggle) {
+                    notificationPanel.hidden = true;
+                }
+            }
+        });
+    }
     var profileTrigger = document.getElementById('profile-trigger');
     if (profileTrigger) profileTrigger.addEventListener('click', function (e) {
         e.stopPropagation();

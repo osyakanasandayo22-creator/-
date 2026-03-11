@@ -38,6 +38,15 @@
                             </div>
                         </span>
                     </span>
+                    <button type="button" class="icon-btn" id="notification-toggle" title="通知" aria-label="通知">🔔</button>
+                    <div class="notification-panel" id="notification-panel" hidden aria-label="通知一覧">
+                        <div class="notification-panel-header">
+                            <h2 class="notification-panel-title">通知</h2>
+                            <button type="button" class="notification-panel-close" id="notification-panel-close" aria-label="閉じる">×</button>
+                        </div>
+                        <ul class="notification-list" id="notification-list" role="list"></ul>
+                        <p class="notification-empty" id="notification-empty" hidden>まだ通知はありません。</p>
+                    </div>
                     <button type="button" class="icon-btn" id="theme-toggle" title="テーマ切替" aria-label="テーマ切替">◐</button>
                     <button type="button" class="icon-btn" id="export-btn" title="エクスポート" aria-label="エクスポート">↓</button>
                     <label class="icon-btn file-label" title="インポート" aria-label="インポート">
