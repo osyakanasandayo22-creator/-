@@ -754,10 +754,12 @@ textarea,
 
 .card-title-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 6px;
+    position: relative;
+    padding-right: 36px;
 }
 
 .card h3 {
@@ -765,19 +767,6 @@ textarea,
     font-size: 1.0625rem;
     font-weight: 500;
     color: var(--text-main);
-}
-
-@media (max-width: 768px) {
-    .card-title-row {
-        flex-wrap: nowrap;
-    }
-    .card h3 {
-        flex: 1 1 auto;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
 }
 
 /* 名著バッジ（いいね数が閾値以上の投稿に表示） */
@@ -1225,9 +1214,10 @@ textarea,
 
 /* ========== 縦三点リーダーメニュー（カード・詳細共通） ========== */
 .post-more-wrap {
-    position: relative;
+    position: absolute;
+    top: 0;
+    right: 0;
     flex-shrink: 0;
-    margin-left: auto;
 }
 
 .post-more-btn {
@@ -1301,16 +1291,7 @@ textarea,
     color: #f28b82;
 }
 
-/* カード内：タイトル行の右端に三点メニュー配置 */
-.card .post-more-wrap {
-    margin-left: auto;
-    margin-bottom: 0;
-}
-
-/* 詳細ビュー：著者行の右端に配置 */
-.detail-author-row .post-more-wrap {
-    margin-left: auto;
-}
+/* カード内・詳細ビューともに右端固定（positionで制御） */
 
 /* 返信フォーム（詳細モーダル下部） */
 .detail-reply-section {
