@@ -1098,10 +1098,10 @@
             '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
             authorIconHtml +
             '<span class="card-author-name">' + _escape(authorName) + '</span>' + verifiedBadge +
+            moreMenuHtml +
             '</div>' +
             '<div class="card-title-row">' +
             '<h3>' + _escape(thought.title) + '</h3>' + masterpieceBadge +
-            moreMenuHtml +
             '</div>' +
             '<div class="preview">' + _escape(plainText) + '</div>' +
             '<div class="meta">' +

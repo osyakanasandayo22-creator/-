@@ -754,12 +754,10 @@ textarea,
 
 .card-title-row {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
     flex-wrap: wrap;
     margin-bottom: 6px;
-    position: relative;
-    padding-right: 36px;
 }
 
 .card h3 {
@@ -1214,9 +1212,7 @@ textarea,
 
 /* ========== 縦三点リーダーメニュー（カード・詳細共通） ========== */
 .post-more-wrap {
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: relative;
     flex-shrink: 0;
 }
 
@@ -1291,7 +1287,16 @@ textarea,
     color: #f28b82;
 }
 
-/* カード内・詳細ビューともに右端固定（positionで制御） */
+/* カード内：タイトル行の右端に三点メニュー配置 */
+.card .post-more-wrap {
+    margin-left: auto;
+    margin-bottom: 0;
+}
+
+/* 詳細ビュー：著者行の右端に配置 */
+.detail-author-row .post-more-wrap {
+    margin-left: auto;
+}
 
 /* 返信フォーム（詳細モーダル下部） */
 .detail-reply-section {
