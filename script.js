@@ -194,6 +194,7 @@
     const filterTag = document.getElementById('filter-tag');
     const searchHint = document.getElementById('search-hint');
     const toastEl = document.getElementById('toast');
+    var bannerEl = null;
     const deleteConfirmOverlay = document.getElementById('delete-confirm-overlay');
     const deleteConfirmCancel = document.getElementById('delete-confirm-cancel');
     const deleteConfirmOk = document.getElementById('delete-confirm-ok');
@@ -625,12 +626,62 @@
     }
 
     function showToast(message) {
+        if (!toastEl) return;
         toastEl.textContent = message;
         toastEl.classList.add('is-visible');
         clearTimeout(toastEl._t);
         toastEl._t = setTimeout(function () {
             toastEl.classList.remove('is-visible');
         }, 2500);
+    }
+
+    function getOrCreateBanner() {
+        if (bannerEl && bannerEl.parentNode) return bannerEl;
+        var el = document.createElement('div');
+        el.id = 'banner-notice';
+        el.className = 'banner-notice';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        document.body.appendChild(el);
+        bannerEl = el;
+        return el;
+    }
+
+    function showBanner(message, type) {
+        var el = getOrCreateBanner();
+        el.textContent = message;
+        el.classList.remove('banner-notice--success', 'banner-notice--info', 'banner-notice--error');
+        var t = type || 'info';
+        if (t === 'success') el.classList.add('banner-notice--success');
+        else if (t === 'error') el.classList.add('banner-notice--error');
+        else el.classList.add('banner-notice--info');
+        el.classList.add('is-visible');
+        clearTimeout(el._t);
+        el._t = setTimeout(function () {
+            el.classList.remove('is-visible');
+        }, 2500);
+    }
+
+    function showPushNotification(title, body) {
+        if (typeof Notification === 'undefined') return;
+        var opts = body ? { body: body } : undefined;
+        if (Notification.permission === 'granted') {
+            try {
+                new Notification(title, opts);
+            } catch (e) { }
+            return;
+        }
+        if (Notification.permission === 'default') {
+            try {
+                Notification.requestPermission().then(function (result) {
+                    if (result === 'granted') {
+                        try {
+                            new Notification(title, opts);
+                        } catch (e) { }
+                    }
+                });
+            } catch (e) { }
+        }
     }
 
     function formatDate(iso) {
@@ -1128,7 +1179,7 @@
 
     function incrementLike(id) {
         if (!isLoggedIn()) {
-            showToast('ログインすると高評価できます');
+            showBanner('ログインすると高評価できます', 'info');
             showLoginModal();
             return;
         }
@@ -1140,11 +1191,12 @@
         if (idx < 0) {
             item.likedBy.push(uid);
             item.likes = (typeof item.likes === 'number' ? item.likes : 0) + 1;
-            showToast('高評価しました');
+            showBanner('高評価しました', 'success');
+            showPushNotification('高評価しました', 'お気に入りの一節に高評価を付けました。');
         } else {
             item.likedBy.splice(idx, 1);
             item.likes = Math.max(0, (typeof item.likes === 'number' ? item.likes : 0) - 1);
-            showToast('高評価を解除しました');
+            showBanner('高評価を解除しました', 'info');
         }
         save();
         renderFeed();
@@ -1327,7 +1379,7 @@
                     unfollowUser(targetUid).then(function () {
                         followBtn.textContent = 'フォロー';
                         followBtn.title = 'フォロー';
-                        showToast('フォローを解除しました');
+                        showBanner('フォローを解除しました', 'info');
                     }).catch(function (err) {
                         console.error('フォロー解除に失敗:', err);
                         showToast('フォロー解除に失敗しました');
@@ -1336,7 +1388,8 @@
                     followUser(targetUid).then(function () {
                         followBtn.textContent = 'フォローを解除';
                         followBtn.title = 'フォローを解除';
-                        showToast('フォローしました');
+                        showBanner('フォローしました', 'success');
+                        showPushNotification('フォローしました', '新しい哲学者をフォローしました。');
                     }).catch(function (err) {
                         console.error('フォローに失敗:', err);
                         showToast('フォローに失敗しました');
@@ -1993,7 +2046,7 @@
                                 followBtn.title = 'フォロー';
                                 var fc = document.getElementById('profile-followers-count');
                                 if (fc) fc.textContent = String(Math.max(0, parseInt(fc.textContent, 10) - 1));
-                                showToast('フォローを解除しました');
+                                showBanner('フォローを解除しました', 'info');
                             }).catch(function (err) {
                                 console.error('フォロー解除に失敗:', err);
                                 showToast('フォロー解除に失敗しました');
@@ -2004,7 +2057,8 @@
                                 followBtn.title = 'フォローを解除';
                                 var fc = document.getElementById('profile-followers-count');
                                 if (fc) fc.textContent = String(parseInt(fc.textContent, 10) + 1);
-                                showToast('フォローしました');
+                                showBanner('フォローしました', 'success');
+                                showPushNotification('フォローしました', '新しい哲学者をフォローしました。');
                             }).catch(function (err) {
                                 console.error('フォローに失敗:', err);
                                 showToast('フォローに失敗しました');
@@ -2901,28 +2955,39 @@
         updateCharCounts();
 
         var editor = e.currentTarget;
-        var sel = window.getSelection();
-        if (!sel || !sel.rangeCount || !editor.contains(sel.anchorNode)) return;
-        var range = sel.getRangeAt(0);
-        var container = range.commonAncestorContainer;
 
-        // 行（ブロック）要素を推定（できるだけ editor 直下の要素を選ぶ）
-        var block = container.nodeType === 3 ? container.parentElement : container;
-        while (block && block !== editor && !block.tagName) block = block.parentElement;
-        while (block && block !== editor && !/^H[1-6]$/.test(block.tagName || '') && block.tagName !== 'DIV' && block.tagName !== 'P' && block.tagName !== 'LI') {
-            block = block.parentElement;
-        }
-        while (block && block !== editor && block.parentNode && block.parentNode !== editor) {
-            block = block.parentElement;
+        // --- 行ブロックの特定（PC/スマホ両対応のため selection に依存しすぎない） ---
+        var sel = window.getSelection ? window.getSelection() : null;
+        var block = null;
+
+        if (sel && sel.rangeCount && editor.contains(sel.anchorNode)) {
+            var range = sel.getRangeAt(0);
+            var container = range.commonAncestorContainer;
+            block = container.nodeType === 3 ? container.parentElement : container;
+            while (block && block !== editor && !block.tagName) block = block.parentElement;
+            while (block && block !== editor && !/^H[1-6]$/.test(block.tagName || '') && block.tagName !== 'DIV' && block.tagName !== 'P' && block.tagName !== 'LI') {
+                block = block.parentElement;
+            }
+            while (block && block !== editor && block.parentNode && block.parentNode !== editor) {
+                block = block.parentElement;
+            }
         }
 
-        // ブロックが特定できなかった場合：エディタ直下にテキストだけがあるケースを扱う
+        // selection から取れない（スマホでよく起こる）場合は、エディタの最後の要素を「今の行」とみなす
         if (!block || block === editor) {
-            // 既存内容を壊さないため、editor 全消去はしない（このケースはスキップ）
-            return;
+            block = editor.lastElementChild || editor.lastChild;
+            if (block && block.nodeType === 3) {
+                // テキストノードだけの場合は div で包んでブロック化
+                var wrapper = document.createElement('div');
+                wrapper.textContent = block.textContent || '';
+                editor.replaceChild(wrapper, block);
+                block = wrapper;
+            }
         }
 
-        // すでに見出しの中にいる場合は変換しない（普通に入力させる）
+        if (!block || block === editor) return;
+
+        // すでに見出しタグなら変換しない
         if (/^H[1-6]$/.test(block.tagName || '')) return;
 
         var text = (block.textContent || '').replace(/\u200B/g, '').trim();
@@ -2939,11 +3004,16 @@
         if (block.parentNode) block.parentNode.replaceChild(h, block);
         else editor.replaceChild(h, block);
 
-        var newRange = document.createRange();
-        newRange.selectNodeContents(h);
-        newRange.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(newRange);
+        // PC ではキャレット位置を見出し末尾に移動（スマホでは selection が効かない場合もあるので best-effort）
+        if (sel && document.createRange) {
+            try {
+                var newRange = document.createRange();
+                newRange.selectNodeContents(h);
+                newRange.collapse(false);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+            } catch (err) {}
+        }
     });
 
     /* スマホ：キーボード表示時に入力欄・ツールバーが見えるようスクロール */
@@ -3034,7 +3104,8 @@
         showAuthError('');
         auth.signInWithEmailAndPassword(email, password).then(function () {
             closeLoginModal();
-            showToast('ログインしました');
+            showBanner('ログインしました', 'success');
+            showPushNotification('ログインしました', 'ようこそ、哲学の世界へ。');
         }).catch(function (err) {
             var msg = err.code === 'auth/user-not-found' ? 'このメールアドレスは登録されていません。' :
                 err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' ? 'パスワードが違います。' :
@@ -3049,7 +3120,8 @@
         showAuthError('');
         auth.createUserWithEmailAndPassword(email, password).then(function () {
             closeLoginModal();
-            showToast('アカウントを作成しました');
+            showBanner('アカウントを作成しました', 'success');
+            showPushNotification('アカウントを作成しました', '新しい哲学ノートが始まりました。');
         }).catch(function (err) {
             var msg = err.code === 'auth/email-already-in-use' ? 'このメールアドレスは既に使われています。' :
                 err.code === 'auth/weak-password' ? 'パスワードは6文字以上にしてください。' :
@@ -3065,7 +3137,8 @@
         var provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).then(function () {
             closeLoginModal();
-            showToast('ログインしました');
+            showBanner('ログインしました', 'success');
+            showPushNotification('ログインしました', 'ようこそ、哲学の世界へ。');
         }).catch(function (err) {
             if (err.code !== 'auth/popup-closed-by-user') {
                 showAuthError(err.message || 'Googleログインに失敗しました。');
@@ -3158,21 +3231,21 @@
         if (e.target === profileSettingsOverlayEl) closeProfileSettingsModal();
     });
     var profileLogout = document.getElementById('profile-logout');
-    if (profileLogout) profileLogout.addEventListener('click', function () {
-        closeProfileDropdown();
-        if (auth) {
-            auth.signOut().then(function () {
+        if (profileLogout) profileLogout.addEventListener('click', function () {
+            closeProfileDropdown();
+            if (auth) {
+                auth.signOut().then(function () {
+                    updateAuthUI();
+                    showBanner('ログアウトしました', 'info');
+                }).catch(function () {
+                    updateAuthUI();
+                    showBanner('ログアウトしました', 'info');
+                });
+            } else {
                 updateAuthUI();
-                showToast('ログアウトしました');
-            }).catch(function () {
-                updateAuthUI();
-                showToast('ログアウトしました');
-            });
-        } else {
-            updateAuthUI();
-            showToast('ログアウトしました');
-        }
-    });
+                showBanner('ログアウトしました', 'info');
+            }
+        });
     document.addEventListener('click', function (e) {
         var wrap = document.getElementById('auth-user');
         if (wrap && !wrap.contains(e.target)) closeProfileDropdown();
