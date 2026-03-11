@@ -720,6 +720,20 @@ textarea,
     font-weight: 500;
 }
 
+.card-author-main {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.card-author-main .card-author-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* フォロワー500人超の公式バッジ（表示名の横に表示） */
 .verified-badge {
     display: inline-flex;

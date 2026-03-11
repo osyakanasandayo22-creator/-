@@ -1097,7 +1097,9 @@
         card.innerHTML =
             '<div class="card-author' + authorClass + '" data-author-id="' + (thought.authorId || '') + '" role="button" tabindex="0" title="プロフィールを表示">' +
             authorIconHtml +
+            '<div class="card-author-main">' +
             '<span class="card-author-name">' + _escape(authorName) + '</span>' + verifiedBadge +
+            '</div>' +
             moreMenuHtml +
             '</div>' +
             '<div class="card-title-row">' +
