@@ -694,7 +694,7 @@ textarea,
     gap: 8px;
     margin-bottom: 12px;
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
 }
 
 .card-author-icon {
