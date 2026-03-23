@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'philostream-v1';
+const CACHE_NAME = 'philostream-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,8 @@ const STATIC_ASSETS = [
   './script.js',
   './firebase-config.js',
   './manifest.json',
-  './icons/icon-512.png'
+  './images/icon-192.png',
+  './images/icon-512.png'
 ];
 
 // インストール: 静的アセットをキャッシュ（一部失敗しても続行）
