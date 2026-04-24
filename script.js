@@ -1727,6 +1727,9 @@
             '</div>' +
             '<div class="detail-title-row">' +
             '<h2 class="detail-title">' + _escape(item.title) + '</h2>' + masterpieceBadgeHtml +
+            '<button type="button" class="btn detail-like-btn detail-like-btn--inline" data-action="like" data-id="' + _escape(item.id) + '" title="高評価">' +
+            '<img class="like-icon" src="' + _escape(detailLikeImgSrc) + '" alt=""><span class="detail-like-count">' + likes + '</span>' +
+            '</button>' +
             '</div>' +
             '<div class="detail-meta-line">' +
             '<time class="detail-date" datetime="' + _escape(item.updatedAt || item.createdAt) + '">' + _escape(formatDate(item.updatedAt || item.createdAt)) + '</time>' +
@@ -1742,12 +1745,7 @@
                   '</ol></nav>'
                 : '') +
             '<div class="detail-content">' + (item.toc && item.toc.length ? contentWithTocIds(item.content || '') : stripContentEditable(item.content || '')) + '</div>' +
-            '<div class="detail-footer">' +
-            '<button type="button" class="btn detail-like-btn" data-action="like" data-id="' + _escape(item.id) + '" title="高評価">' +
-            '<img class="like-icon" src="' + _escape(detailLikeImgSrc) + '" alt=""><span class="detail-like-count">' + likes + '</span>' +
-            '</button>' +
-            actionsHtml +
-            '</div>' +
+            (actionsHtml ? ('<div class="detail-footer">' + actionsHtml + '</div>') : '') +
             '</article>' +
             '<section class="detail-reply-section" aria-labelledby="detail-reply-heading">' +
             '<h3 id="detail-reply-heading" class="detail-reply-heading">返信 <span class="detail-reply-count-badge" id="detail-reply-count-badge"></span></h3>' +
