@@ -915,7 +915,7 @@ textarea,
 .thread-view-main {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 18px 90px;
+    padding: 16px 18px 190px;
 }
 
 .thread-view-body {
@@ -957,6 +957,28 @@ textarea,
     font-size: 0.86rem;
     letter-spacing: 0.08em;
     margin-bottom: 12px;
+}
+
+.view-thread .detail-reply-form {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: max(18px, env(safe-area-inset-bottom, 0px) + 10px);
+    width: min(860px, calc(100vw - 34px));
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--bg-card) 94%, transparent);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    box-shadow: var(--shadow-lg);
+    z-index: 80;
+}
+
+.view-thread .detail-reply-form .detail-reply-textarea {
+    min-height: 58px;
+    max-height: 160px;
+    border-radius: 12px;
 }
 
 .thread-stream {
@@ -3938,8 +3960,14 @@ textarea,
     .settings-page-main { padding-left: 16px; padding-right: 16px; }
     .article-view-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; }
     .article-view-main { padding: 24px 16px 56px; }
-    .thread-view-main { padding: 12px 14px 76px; }
+    .thread-view-main { padding: 12px 14px 174px; }
     .thread-msg--mine .thread-msg-body { max-width: 88%; }
+    .view-thread .detail-reply-form {
+        width: calc(100vw - 20px);
+        bottom: max(10px, env(safe-area-inset-bottom, 0px) + 6px);
+        border-radius: 14px;
+        padding: 10px 12px;
+    }
 
     /* iOS 自動ズーム防止：16px 以上 */
     .search-bar input[type="search"],
