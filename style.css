@@ -759,7 +759,7 @@ textarea,
     }
     .feed-timeline .card {
         margin-bottom: 0;
-        min-height: 148px;
+        min-height: 156px;
     }
 }
 
@@ -787,23 +787,30 @@ textarea,
 /* タイムラインの見出し（哲学らしく） */
 .timeline-heading {
     font-family: var(--font-display);
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-main);
-    margin: 0 0 24px 0;
-    letter-spacing: 0.04em;
+    margin: 0 0 26px 0;
+    letter-spacing: 0.06em;
     position: relative;
-    padding-bottom: 14px;
+    padding-bottom: 16px;
 }
 .timeline-heading::after {
     content: '';
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 28px;
-    height: 2px;
-    background: var(--accent);
-    border-radius: 2px;
+    right: 0;
+    height: 1px;
+    border-radius: 1px;
+    background: linear-gradient(
+        90deg,
+        var(--accent) 0,
+        var(--accent) 34px,
+        color-mix(in srgb, var(--border) 88%, transparent) 34px,
+        color-mix(in srgb, var(--border) 55%, transparent) 55%,
+        transparent 100%
+    );
 }
 
 /* ---------- 人気タグセクション（note風） ---------- */
@@ -898,21 +905,21 @@ textarea,
     font-weight: 500;
 }
 
-/* ========== カード ========== */
+/* ========== カード（タイムライン：落ち着いた編集室のような面） ========== */
 .card {
     background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px 22px;
-    margin-bottom: 14px;
+    border: 1px solid color-mix(in srgb, var(--border) 92%, var(--text-main));
+    border-radius: 16px;
+    padding: 22px 24px 20px;
+    margin-bottom: 16px;
     cursor: pointer;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 55%, transparent), var(--shadow-sm);
     transition: transform var(--t-base) var(--ease-out),
                 box-shadow var(--t-base) var(--ease),
                 border-color var(--t-base) var(--ease),
                 background var(--t-base) var(--ease);
     animation: cardIn 400ms var(--ease-out) both;
-    min-height: 150px;
+    min-height: 152px;
     width: 100%;
     box-sizing: border-box;
     display: flex;
@@ -921,19 +928,19 @@ textarea,
     overflow: hidden;
 }
 
-/* 左端のアクセントライン（ホバー時に現れる） */
+/* 左端のスパイン（常時ほんのり、ホバーで明確に） */
 .card::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 16px;
-    bottom: 16px;
-    width: 2px;
-    background: var(--accent);
-    border-radius: 0 2px 2px 0;
-    opacity: 0;
-    transform: scaleY(0.4);
-    transform-origin: center;
+    top: 18px;
+    bottom: 18px;
+    width: 3px;
+    background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 45%, var(--bg-card)));
+    border-radius: 0 3px 3px 0;
+    opacity: 0.14;
+    transform: scaleY(0.92);
+    transform-origin: center top;
     transition: opacity var(--t-base) var(--ease), transform var(--t-base) var(--ease);
 }
 
@@ -943,31 +950,37 @@ textarea,
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 40%, transparent), var(--shadow-md);
     border-color: var(--border-hover);
-    background: var(--bg-card);
+    background: color-mix(in srgb, var(--bg-card) 96%, var(--bg-subtle));
 }
 .card:hover::before {
     opacity: 1;
     transform: scaleY(1);
+}
+[data-theme="dark"] .card::before {
+    opacity: 0.2;
+}
+[data-theme="dark"] .card:hover::before {
+    opacity: 0.95;
 }
 .card:active { transform: translateY(0); transition-duration: 80ms; }
 
 .card-author {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 10px;
+    margin-bottom: 14px;
     width: 100%;
     justify-content: flex-start;
 }
 
 .card-author-icon {
     box-sizing: border-box;
-    width: 28px;
-    height: 28px;
-    font-size: 0.95rem;
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
     line-height: 1;
     display: inline-flex;
     align-items: center;
@@ -989,7 +1002,8 @@ textarea,
 .card-author-name {
     font-size: 0.8125rem;
     color: var(--text-sub);
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 .card-author-main {
     display: flex;
@@ -1037,20 +1051,20 @@ textarea,
 
 .card-title-row {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    align-items: flex-start;
+    gap: 10px;
     flex-wrap: wrap;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .card h3 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 1.08rem;
+    font-size: 1.0625rem;
     font-weight: 600;
     color: var(--text-main);
-    letter-spacing: 0.01em;
-    line-height: 1.45;
+    letter-spacing: 0.03em;
+    line-height: 1.5;
 }
 
 /* 名著バッジ */
@@ -1075,45 +1089,49 @@ textarea,
 
 .card .preview {
     color: var(--text-sub);
-    font-size: 0.9rem;
-    line-height: 1.7;
+    font-size: 0.90625rem;
+    line-height: 1.75;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     flex: 1;
-    min-height: 2.8em;
+    min-height: 2.85em;
     font-family: var(--font-serif);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
 }
 
 .card .meta {
-    margin-top: 12px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
 }
 
 .card .tag {
-    font-size: 0.72rem;
-    padding: 3px 9px;
-    background: var(--bg-subtle);
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    background: color-mix(in srgb, var(--bg-subtle) 88%, var(--accent-softer));
     color: var(--text-sub);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    border: 1px solid color-mix(in srgb, var(--border) 90%, var(--accent-soft));
+    border-radius: 999px;
     transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+    font-weight: 500;
 }
 .card:hover .tag {
     background: var(--bg-elevated);
 }
 
 .card .date {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--text-mute);
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
 }
 
 /* 高評価ボタン（カード） */
@@ -1201,6 +1219,10 @@ textarea,
     color: var(--accent);
     transform: translateY(-1px);
     box-shadow: 0 4px 10px var(--accent-glow);
+}
+.article-body .detail-like-btn:hover {
+    transform: none;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-glow) 55%, transparent);
 }
 .detail-like-btn:active {
     transform: translateY(0);
@@ -1964,12 +1986,12 @@ textarea,
     font-family: var(--font-serif);
 }
 
-/* ========== 記事閲覧ビュー（note風・フルページ） ========== */
+/* ========== 記事閲覧ビュー（読書面＋静かなヘッダ） ========== */
 .view-article {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background: var(--bg-color);
+    background: radial-gradient(120% 80% at 50% -10%, color-mix(in srgb, var(--bg-elevated) 55%, var(--bg-color)) 0%, var(--bg-color) 52%);
 }
 
 .article-view-header {
@@ -1977,26 +1999,58 @@ textarea,
     top: 0;
     z-index: 20;
     flex-shrink: 0;
-    padding: calc(16px + env(safe-area-inset-top, 0px)) 24px 12px;
-    background: color-mix(in srgb, var(--bg-color) 88%, transparent);
-    backdrop-filter: saturate(140%) blur(12px);
-    -webkit-backdrop-filter: saturate(140%) blur(12px);
-    border-bottom: 1px solid var(--border);
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 14px;
+    background: color-mix(in srgb, var(--bg-color) 82%, transparent);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+
+.view-article .article-view-header .editor-back-btn {
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--border) 90%, var(--text-main));
+    background: var(--bg-card);
+    padding: 8px 18px 8px 16px;
+    font-weight: 500;
+    color: var(--text-sub);
+    box-shadow: var(--shadow-sm);
+}
+.view-article .article-view-header .editor-back-btn:hover {
+    background: color-mix(in srgb, var(--bg-card) 88%, var(--accent-soft));
+    border-color: color-mix(in srgb, var(--border-hover) 70%, var(--accent));
+    color: var(--text-main);
 }
 
 .article-view-main {
     flex: 1;
     overflow-y: auto;
-    padding: 40px 20px 64px;
+    padding: 28px 18px 72px;
 }
 
-.article-body {
-    max-width: 720px;
+/* 記事＋返信を一枚の「面」にまとめる（構造はそのまま） */
+.view-article .article-body {
+    max-width: 688px;
     margin: 0 auto;
-    animation: articleIn 500ms var(--ease-out);
+    animation: articleIn 520ms var(--ease-out);
+    background: var(--bg-card);
+    border: 1px solid color-mix(in srgb, var(--border) 88%, var(--text-main));
+    border-radius: 22px;
+    padding: 28px 22px 36px;
+    box-shadow:
+        0 1px 0 color-mix(in srgb, var(--border) 40%, transparent),
+        0 28px 56px -32px rgba(31, 30, 29, 0.09),
+        0 12px 24px -18px rgba(31, 30, 29, 0.05);
 }
+
+[data-theme="dark"] .view-article .article-body {
+    box-shadow:
+        0 1px 0 color-mix(in srgb, var(--border) 50%, transparent),
+        0 28px 56px -28px rgba(0, 0, 0, 0.45),
+        0 10px 20px -14px rgba(0, 0, 0, 0.35);
+}
+
 @keyframes articleIn {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -2011,63 +2065,95 @@ textarea,
 }
 
 .article-body .detail-author-row {
-    padding: 0 0 20px;
+    padding: 0 0 22px;
     margin-bottom: 0;
+    border-bottom: none;
 }
 
 .article-body .detail-title-row {
-    padding-bottom: 20px;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border);
+    padding-bottom: 22px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
 .article-body .detail-title {
-    font-size: 1.85rem;
+    font-size: 1.78rem;
     font-weight: 600;
-    line-height: 1.38;
+    line-height: 1.36;
     padding: 0;
     margin: 0;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.035em;
+    color: color-mix(in srgb, var(--text-main) 96%, var(--text-sub));
 }
 
 .article-body .detail-meta-line {
-    padding: 0 0 24px;
+    padding: 0 0 26px;
     margin-bottom: 0;
+    gap: 14px;
+}
+
+.article-body .detail-date {
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--text-mute);
+}
+
+.article-body .detail-meta-line .tag {
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    background: color-mix(in srgb, var(--bg-subtle) 90%, var(--accent-softer));
+    border: 1px solid color-mix(in srgb, var(--border) 85%, var(--accent-soft));
 }
 
 .article-body .detail-toc {
     margin: 0 0 28px;
     padding: 18px 22px;
-    background: var(--bg-subtle);
-    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg-subtle) 92%, var(--bg-card));
+    border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+    border-radius: 14px;
 }
 
 .article-body .detail-content {
     padding: 0 0 40px;
     margin: 0;
     border-top: none;
-    font-size: 1.08rem;
-    line-height: 2.0;
+    font-size: 1.06rem;
+    line-height: 2.02;
     max-width: 100%;
+    color: color-mix(in srgb, var(--text-main) 94%, var(--text-sub));
 }
 
 .article-body .detail-footer {
-    padding: 24px 0 32px;
+    padding: 22px 0 28px;
     margin: 0;
     background: transparent;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
 .article-body .detail-reply-section {
-    padding: 36px 0 0;
-    border-top: 1px solid var(--border);
+    padding: 32px 0 0;
+    margin-top: 4px;
+    border-top: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
     background: transparent;
 }
 
+.article-body .detail-reply-heading {
+    font-size: 1.05rem;
+    letter-spacing: 0.05em;
+}
+
 @media (min-width: 768px) {
-    .article-view-main { padding: 56px 40px 80px; }
-    .article-body .detail-title { font-size: 2.15rem; }
-    .article-body .detail-content { font-size: 1.13rem; }
+    .article-view-main { padding: 40px 28px 88px; }
+    .view-article .article-body {
+        padding: 40px 40px 44px;
+        border-radius: 24px;
+    }
+    .article-body .detail-title { font-size: 2.05rem; }
+    .article-body .detail-content { font-size: 1.11rem; line-height: 2.05; }
 }
 
 /* ========== ボタン類 ========== */
@@ -3676,7 +3762,11 @@ textarea,
     .profile-page-main,
     .settings-page-main { padding-left: 16px; padding-right: 16px; }
     .article-view-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; }
-    .article-view-main { padding: 24px 16px 56px; }
+    .article-view-main { padding: 24px 14px 56px; }
+    .view-article .article-body {
+        padding: 22px 16px 30px;
+        border-radius: 18px;
+    }
 
     /* iOS 自動ズーム防止：16px 以上 */
     .search-bar input[type="search"],
