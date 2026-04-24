@@ -986,7 +986,7 @@
             var likes = typeof thought.likes === 'number' ? thought.likes : 0;
             var title = (thought.title || '').trim() || '（無題）';
             btn.innerHTML = '<span class="feed-sidebar-masterpiece-title">' + _escape(title) + '</span>' +
-                '<span class="feed-sidebar-masterpiece-meta">♥ ' + likes + ' いいね</span>';
+                '<span class="feed-sidebar-masterpiece-meta">♡ ' + likes + '</span>';
             btn.title = title + ' を読む';
             btn.addEventListener('click', function () { showDetail(thought.id); });
             li.appendChild(btn);
@@ -1543,7 +1543,13 @@
             replyingToDisplayName = name || null;
             updateReplyFormHint();
             var ta = container.querySelector('.detail-reply-textarea');
-            if (ta) ta.focus();
+            if (ta) {
+                // スムーススクロールで返信フォームへ移動してからフォーカス
+                try {
+                    ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } catch (_) { /* 古いブラウザ用 */ }
+                setTimeout(function () { try { ta.focus({ preventScroll: true }); } catch (_) { ta.focus(); } }, 240);
+            }
         }
 
         var replyListEl = container.querySelector('#detail-reply-list');
@@ -1551,19 +1557,71 @@
         function renderReplyList(replies) {
             if (!replyListEl) return;
             var list = Array.isArray(replies) ? replies : [];
-            var sorted = list.slice().sort(function (a, b) {
-                var likesA = typeof a.likes === 'number' ? a.likes : 0;
-                var likesB = typeof b.likes === 'number' ? b.likes : 0;
-                if (likesB !== likesA) return likesB - likesA;
+
+            // id -> reply のマップ
+            var byId = {};
+            list.forEach(function (r) { if (r && r.id != null) byId[r.id] = r; });
+
+            // 各返信の depth を親子チェーンから算出
+            var depthMap = {};
+            function computeDepth(r, seen) {
+                if (!r) return 0;
+                if (depthMap[r.id] != null) return depthMap[r.id];
+                if (!r.replyToReplyId || !byId[r.replyToReplyId]) {
+                    depthMap[r.id] = 0;
+                    return 0;
+                }
+                seen = seen || {};
+                if (seen[r.id]) { depthMap[r.id] = 0; return 0; }
+                seen[r.id] = true;
+                var d = computeDepth(byId[r.replyToReplyId], seen) + 1;
+                depthMap[r.id] = d;
+                return d;
+            }
+            list.forEach(function (r) { computeDepth(r); });
+
+            // トップレベル（親がリストに無い返信）を人気順でソート
+            var topLevel = list.filter(function (r) { return (depthMap[r.id] || 0) === 0; });
+            topLevel.sort(function (a, b) {
+                var la = typeof a.likes === 'number' ? a.likes : 0;
+                var lb = typeof b.likes === 'number' ? b.likes : 0;
+                if (lb !== la) return lb - la;
                 return (a.createdAt || '').localeCompare(b.createdAt || '');
             });
+
+            // 親IDごとに子返信をまとめ、時系列でソート
+            var childrenByParent = {};
+            list.forEach(function (r) {
+                if ((depthMap[r.id] || 0) > 0 && r.replyToReplyId && byId[r.replyToReplyId]) {
+                    (childrenByParent[r.replyToReplyId] = childrenByParent[r.replyToReplyId] || []).push(r);
+                }
+            });
+            Object.keys(childrenByParent).forEach(function (pid) {
+                childrenByParent[pid].sort(function (a, b) {
+                    return (a.createdAt || '').localeCompare(b.createdAt || '');
+                });
+            });
+
+            // 深さ優先で親→子の順にフラット化（スレッド表示）
+            var ordered = [];
+            function addWithChildren(r) {
+                ordered.push(r);
+                var ch = childrenByParent[r.id] || [];
+                ch.forEach(addWithChildren);
+            }
+            topLevel.forEach(addWithChildren);
+
             if (replyCountBadge) {
-                replyCountBadge.textContent = sorted.length ? '(' + sorted.length + ')' : '';
-                replyCountBadge.style.visibility = sorted.length ? 'visible' : 'hidden';
+                replyCountBadge.textContent = ordered.length ? '(' + ordered.length + ')' : '';
+                replyCountBadge.style.visibility = ordered.length ? 'visible' : 'hidden';
+            }
+            if (ordered.length === 0) {
+                replyListEl.innerHTML = '<div class="detail-reply-empty" role="listitem">まだ議論は始まっていません。<br>最初の一声で、思索の扉を開いてみましょう。</div>';
+                return;
             }
             var currentUid = auth && auth.currentUser ? auth.currentUser.uid : '';
             var postAuthorId = item.authorId || '';
-            replyListEl.innerHTML = sorted.map(function (r) {
+            replyListEl.innerHTML = ordered.map(function (r) {
                 var name = (r.authorDisplayName || '匿名');
                 var replyVerifiedBadge = ((r.authorFollowersCount || 0) > VERIFIED_FOLLOWERS_THRESHOLD) ? getVerifiedBadgeHtml() : '';
                 var date = r.createdAt ? formatDate(r.createdAt) : '';
@@ -1574,12 +1632,17 @@
                 var isMine = currentUid && r.authorId === currentUid;
                 var isPostAuthor = postAuthorId && r.authorId === postAuthorId;
                 var authorBadgeHtml = isPostAuthor ? ' <span class="detail-reply-badge detail-reply-badge--author">投稿者</span>' : '';
-                var replyToLineHtml = (r.replyToReplyId && r.replyToDisplayName) ? '<div class="detail-reply-to-line">' + _escape(r.replyToDisplayName) + 'さんへの返信</div>' : '';
+                var replyToLineHtml = (r.replyToReplyId && r.replyToDisplayName)
+                    ? '<button type="button" class="detail-reply-to-line" data-action="reply-jump" data-target-reply-id="' + _escape(r.replyToReplyId) + '" title="引用元の返信へジャンプ"><span class="detail-reply-to-line-arrow">↳</span> ' + _escape(r.replyToDisplayName) + 'さんへの返信</button>'
+                    : '';
                 var deleteBtnHtml = isMine
                     ? '<button type="button" class="btn btn-sm danger detail-reply-delete-btn" data-action="reply-delete" data-post-id="' + _escape(item.id) + '" data-reply-id="' + _escape(replyId) + '" title="返信を削除">削除</button>'
                     : '';
                 var replyToBtnHtml = '<button type="button" class="btn btn-sm detail-reply-reply-btn" data-action="reply-to-reply" data-reply-id="' + _escape(replyId) + '" data-reply-to-name="' + _escape(name) + '" title="この返信に返信">返信</button>';
-                return '<div class="detail-reply-item" role="listitem" data-reply-id="' + _escape(replyId) + '">' +
+                // スレッド表示のための深さ（最大2段までインデント）
+                var depth = Math.min(depthMap[r.id] || 0, 2);
+                var depthClass = depth > 0 ? ' is-nested' : '';
+                return '<div class="detail-reply-item' + depthClass + '" data-depth="' + depth + '" role="listitem" data-reply-id="' + _escape(replyId) + '">' +
                     '<div class="detail-reply-item-header">' +
                     '<span class="detail-reply-item-author">' + _escape(name) + '</span>' + authorBadgeHtml + replyVerifiedBadge +
                     '<time class="detail-reply-item-date" datetime="' + _escape(r.createdAt || '') + '">' + _escape(date) + '</time>' +
@@ -1629,6 +1692,19 @@
                     setReplyingTo(rid || null, toName || '');
                 };
             });
+            replyListEl.querySelectorAll('[data-action="reply-jump"]').forEach(function (btn) {
+                btn.onclick = function () {
+                    var targetId = btn.getAttribute('data-target-reply-id');
+                    if (!targetId) return;
+                    var target = replyListEl.querySelector('.detail-reply-item[data-reply-id="' + CSS.escape(targetId) + '"]');
+                    if (!target) return;
+                    try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { target.scrollIntoView(); }
+                    target.classList.remove('is-flash');
+                    void target.offsetWidth;
+                    target.classList.add('is-flash');
+                    setTimeout(function () { target.classList.remove('is-flash'); }, 1600);
+                };
+            });
         }
         renderReplyList(item.replies);
         if (db) {
@@ -1660,12 +1736,42 @@
         if (replyForm) {
             var replyTextarea = replyForm.querySelector('.detail-reply-textarea');
             var replyCountEl = replyForm.querySelector('.detail-reply-count');
+            var replySubmitBtn = replyForm.querySelector('.detail-reply-submit');
+
+            function autoResizeTextarea() {
+                if (!replyTextarea) return;
+                replyTextarea.style.height = 'auto';
+                var max = 240;
+                var h = Math.min(replyTextarea.scrollHeight, max);
+                replyTextarea.style.height = h + 'px';
+                replyTextarea.style.overflowY = replyTextarea.scrollHeight > max ? 'auto' : 'hidden';
+            }
+            function refreshReplySubmitState() {
+                if (!replySubmitBtn) return;
+                var hasText = replyTextarea && (replyTextarea.value || '').trim().length > 0;
+                replySubmitBtn.disabled = !hasText;
+                replySubmitBtn.style.opacity = hasText ? '' : '0.5';
+                replySubmitBtn.style.cursor = hasText ? '' : 'not-allowed';
+            }
             function updateReplyCount() {
                 var len = replyTextarea ? (replyTextarea.value || '').length : 0;
                 if (replyCountEl) replyCountEl.textContent = len + ' / 500';
+                refreshReplySubmitState();
+                autoResizeTextarea();
             }
             if (replyTextarea) {
                 replyTextarea.addEventListener('input', updateReplyCount);
+                // Cmd / Ctrl + Enter で送信
+                replyTextarea.addEventListener('keydown', function (e) {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        if (replyForm.requestSubmit) {
+                            replyForm.requestSubmit();
+                        } else {
+                            replyForm.dispatchEvent(new Event('submit', { cancelable: true }));
+                        }
+                    }
+                });
                 updateReplyCount();
             }
             var replyToCancelBtn = container.querySelector('#detail-reply-to-cancel');
