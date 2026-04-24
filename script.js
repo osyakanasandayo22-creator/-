@@ -21,6 +21,9 @@
     /** タイムライン：初回表示件数・追加読み込み件数 */
     const FEED_INITIAL_PAGE_SIZE = 15;
     const FEED_LOAD_MORE_SIZE = 12;
+    const CONTENT_MAX_TEXT_LENGTH = 12000;
+    const IMPORT_MAX_FILE_SIZE_BYTES = 1024 * 1024;
+    const IMPORT_MAX_ITEMS = 500;
 
     var db = null;
     var auth = null;
@@ -129,22 +132,109 @@
         return new Date().toISOString();
     }
 
+    function safeParseStorage(key) {
+        try {
+            return JSON.parse(localStorage.getItem(key));
+        } catch (e) {
+            console.warn('Storage parse failed:', e);
+            return null;
+        }
+    }
+
+    function safeText(value, maxLen) {
+        var s = value == null ? '' : String(value);
+        if (typeof maxLen === 'number' && maxLen > 0) return s.slice(0, maxLen);
+        return s;
+    }
+
+    function safeArray(list, maxLen) {
+        if (!Array.isArray(list)) return [];
+        return list.slice(0, maxLen || 100);
+    }
+
+    function sanitizeRichContent(html) {
+        if (!html) return '';
+        var wrap = document.createElement('div');
+        wrap.innerHTML = String(html);
+
+        // 明示的に危険な要素を除去
+        wrap.querySelectorAll('script, style, iframe, object, embed, link, meta, base, form, input, textarea, select, button').forEach(function (el) {
+            el.remove();
+        });
+
+        var allowedTags = {
+            B: true, STRONG: true, I: true, EM: true, U: true, S: true,
+            BR: true, P: true, DIV: true, SPAN: true, BLOCKQUOTE: true,
+            UL: true, OL: true, LI: true, H2: true, H3: true, A: true, FONT: true
+        };
+        var allowedAttrs = {
+            A: { href: true, title: true, target: true, rel: true },
+            FONT: { size: true, color: true }
+        };
+
+        var all = wrap.querySelectorAll('*');
+        all.forEach(function (el) {
+            var tag = el.tagName;
+            if (!allowedTags[tag]) {
+                var text = document.createTextNode(el.textContent || '');
+                el.replaceWith(text);
+                return;
+            }
+
+            var attrs = Array.prototype.slice.call(el.attributes || []);
+            attrs.forEach(function (attr) {
+                var name = attr.name.toLowerCase();
+                var val = attr.value || '';
+                if (name.indexOf('on') === 0 || name === 'style') {
+                    el.removeAttribute(attr.name);
+                    return;
+                }
+                if (!allowedAttrs[tag] || !allowedAttrs[tag][name]) {
+                    el.removeAttribute(attr.name);
+                    return;
+                }
+                if (tag === 'A' && name === 'href') {
+                    var href = val.trim();
+                    if (!/^(https?:|mailto:|#)/i.test(href)) {
+                        el.removeAttribute('href');
+                    }
+                }
+            });
+
+            if (tag === 'A' && el.getAttribute('href')) {
+                el.setAttribute('target', '_blank');
+                el.setAttribute('rel', 'noopener noreferrer nofollow');
+            }
+        });
+
+        return wrap.innerHTML;
+    }
+
     function normalizeThought(t) {
+        var safeTitle = safeText(t && t.title, TITLE_MAX_LENGTH).trim();
+        var safeContent = sanitizeRichContent(safeText(t && t.content, CONTENT_MAX_TEXT_LENGTH * 2));
+        var safeTags = safeArray(t && t.tags, 20).map(function (tag) {
+            return safeText(tag, 30).trim();
+        }).filter(Boolean);
+        var safeToc = safeArray(t && t.toc, 40).map(function (entry) {
+            var title = safeText(entry && entry.title, 100).trim();
+            return title ? { title: title } : null;
+        }).filter(Boolean);
         return {
-            id: t.id || _uid(),
-            title: t.title || '',
-            content: t.content || '',
-            tags: Array.isArray(t.tags) ? t.tags : [],
-            toc: Array.isArray(t.toc) ? t.toc : [],
-            createdAt: t.createdAt || _now(),
-            updatedAt: t.updatedAt || t.createdAt || _now(),
-            likes: typeof t.likes === 'number' ? t.likes : 0,
-            likedBy: Array.isArray(t.likedBy) ? t.likedBy : [],
-            authorId: t.authorId || '',
-            authorDisplayName: t.authorDisplayName || '',
-            authorIcon: t.authorIcon || '👤',
-            authorIconBg: t.authorIconBg || '',
-            authorFollowersCount: typeof t.authorFollowersCount === 'number' ? t.authorFollowersCount : 0
+            id: safeText(t && t.id, 120) || _uid(),
+            title: safeTitle,
+            content: safeContent,
+            tags: safeTags,
+            toc: safeToc,
+            createdAt: safeText(t && t.createdAt, 64) || _now(),
+            updatedAt: safeText(t && t.updatedAt, 64) || safeText(t && t.createdAt, 64) || _now(),
+            likes: Math.max(0, typeof (t && t.likes) === 'number' ? t.likes : 0),
+            likedBy: safeArray(t && t.likedBy, 500).map(function (uid) { return safeText(uid, 128); }).filter(Boolean),
+            authorId: safeText(t && t.authorId, 128),
+            authorDisplayName: safeText(t && t.authorDisplayName, DISPLAY_NAME_MAX_LENGTH),
+            authorIcon: safeText(t && t.authorIcon, 8) || '👤',
+            authorIconBg: safeText(t && t.authorIconBg, 20),
+            authorFollowersCount: Math.max(0, typeof (t && t.authorFollowersCount) === 'number' ? t.authorFollowersCount : 0)
         };
     }
 
@@ -170,7 +260,7 @@
         notificationIconEl.src = isDark ? 'images/通知黒テーマ用.png' : 'images/通知白テーマ用.png';
     }
 
-    let raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    let raw = safeParseStorage(STORAGE_KEY);
     let thoughts = Array.isArray(raw) && raw.length > 0 ? raw : [
         { id: _uid(), title: "変化の唯一性", content: "この世で唯一変化しないものは、<b>変化し続ける</b>ということだけである。", tags: ["変化", "存在"], createdAt: _now(), updatedAt: _now() },
         { id: _uid(), title: "美しさと主観", content: "美しさは物自体にあるのではなく、<font size='5'>それを見る人の心</font>の中にある。", tags: ["美", "主観"], createdAt: _now(), updatedAt: _now() }
@@ -229,7 +319,10 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
         if (db) {
             var col = db.collection(FIRESTORE_COLLECTION);
+            var currentUid = auth && auth.currentUser ? auth.currentUser.uid : '';
             thoughts.forEach(function (t) {
+                // 自分の投稿のみ同期（他ユーザー投稿の上書きを防ぐ）
+                if (!currentUid || !t || t.authorId !== currentUid) return;
                 col.doc(t.id).set(t).catch(function (err) {
                     console.warn('Firestore save failed:', err);
                 });
@@ -2622,7 +2715,7 @@
             }
             submitBtn.textContent = '更新する';
             titleEl.value = item ? item.title : '';
-            contentEl.innerHTML = item ? item.content : '';
+            contentEl.innerHTML = item ? sanitizeRichContent(item.content) : '';
             tagsEl.value = item && item.tags ? item.tags.join(', ') : '';
             if (tocEnable && tocBody && tocListEl) {
                 tocEnable.checked = !!(item.toc && item.toc.length > 0);
@@ -2719,7 +2812,7 @@
     function stripContentEditable(html) {
         if (!html) return '';
         var wrap = document.createElement('div');
-        wrap.innerHTML = html;
+        wrap.innerHTML = sanitizeRichContent(html);
         wrap.querySelectorAll('[contenteditable]').forEach(function (el) {
             el.removeAttribute('contenteditable');
         });
@@ -2729,7 +2822,7 @@
     function contentWithTocIds(html) {
         if (!html) return '';
         var wrap = document.createElement('div');
-        wrap.innerHTML = html;
+        wrap.innerHTML = sanitizeRichContent(html);
         wrap.querySelectorAll('[contenteditable]').forEach(function (el) {
             el.removeAttribute('contenteditable');
         });
@@ -2886,7 +2979,7 @@
         var contentEl = document.getElementById('post-content');
         var tagsEl = document.getElementById('post-tags');
         var title = titleEl ? titleEl.value.trim() : '';
-        var content = contentEl ? contentEl.innerHTML.replace(/\u200B/g, '') : '';
+        var content = contentEl ? sanitizeRichContent(contentEl.innerHTML.replace(/\u200B/g, '')) : '';
         var rawTags = (tagsEl && tagsEl.value) ? tagsEl.value.split(/[,，、\s]+/) : [];
         var tags = rawTags.map(function (t) { return t.trim(); }).filter(Boolean);
         var tocEnabled = document.getElementById('post-toc-enable') && document.getElementById('post-toc-enable').checked;
@@ -2899,6 +2992,10 @@
         }
         if (title.length > TITLE_MAX_LENGTH) {
             showToast('タイトルは' + TITLE_MAX_LENGTH + '文字以内で入力してください');
+            return;
+        }
+        if (plainText.length > CONTENT_MAX_TEXT_LENGTH) {
+            showToast('本文は' + CONTENT_MAX_TEXT_LENGTH + '文字以内で入力してください');
             return;
         }
 
@@ -2985,22 +3082,27 @@
 
     function importData(file) {
         if (!file || !file.name) return;
+        if ((file.type && file.type !== 'application/json') && !/\.json$/i.test(file.name)) {
+            showToast('JSONファイルを選択してください');
+            return;
+        }
+        if (file.size > IMPORT_MAX_FILE_SIZE_BYTES) {
+            showToast('ファイルサイズが大きすぎます（最大1MB）');
+            return;
+        }
         var reader = new FileReader();
         reader.onload = function () {
             try {
                 var arr = JSON.parse(reader.result);
                 if (!Array.isArray(arr)) throw new Error('Invalid format');
-                var merged = arr.concat(thoughts);
+                if (arr.length > IMPORT_MAX_ITEMS) throw new Error('Too many items');
+                var imported = arr.map(normalizeThought);
+                var merged = imported.concat(thoughts);
                 var seen = new Set();
                 thoughts = merged.filter(function (t) {
                     var id = t.id || t.title + (t.content || '');
                     if (seen.has(id)) return false;
                     seen.add(id);
-                    if (!t.id) t.id = _uid();
-                    if (!t.createdAt) t.createdAt = _now();
-                    if (!t.updatedAt) t.updatedAt = _now();
-                    if (!t.tags) t.tags = [];
-                    if (typeof t.likes !== 'number') t.likes = 0;
                     return true;
                 });
                 save();
