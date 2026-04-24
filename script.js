@@ -1569,10 +1569,10 @@
         if (viewArticle) viewArticle.hidden = true;
         if (viewThread) viewThread.hidden = false;
         threadViewBody.innerHTML =
-            '<article class="thread-card">' +
-            '<h2 class="thread-title">' + _escape((thread.title || '').trim() || '（無題）') + '</h2>' +
-            '<p class="thread-meta">スレ主: ' + _escape(thread.authorDisplayName || '匿名') + ' / 作成: ' + _escape(formatDate(thread.createdAt)) + '</p>' +
-            '</article>' +
+            '<section class="thread-topic-bar">' +
+            '<h2 class="thread-topic-title">' + _escape((thread.title || '').trim() || '（無題）') + '</h2>' +
+            '<p class="thread-topic-meta">スレ主: ' + _escape(thread.authorDisplayName || '匿名') + ' / 作成: ' + _escape(formatDate(thread.createdAt)) + '</p>' +
+            '</section>' +
             '<section class="detail-reply-section thread-reply-wrap">' +
             '<h3 class="detail-reply-heading">議論</h3>' +
             (isLoggedIn()
@@ -1583,7 +1583,7 @@
                   '<button type="submit" class="btn primary btn-sm detail-reply-submit">送信</button>' +
                   '</div></form>'
                 : '<p class="detail-reply-login-hint">ログインすると返信できます。</p>') +
-            '<div class="detail-reply-list" id="thread-reply-list"></div>' +
+            '<div class="detail-reply-list thread-stream" id="thread-reply-list"></div>' +
             '</section>';
         var listEl = threadViewBody.querySelector('#thread-reply-list');
         function renderThreadReplies() {
@@ -1594,11 +1594,14 @@
                 listEl.innerHTML = '<div class="detail-reply-empty">まだレスがありません。最初の返信をどうぞ。</div>';
                 return;
             }
-            listEl.innerHTML = list.map(function (r) {
-                return '<div class="detail-reply-item">' +
-                    '<div class="detail-reply-item-header"><span class="detail-reply-item-author">' + _escape(r.authorDisplayName || '匿名') + '</span>' +
-                    '<time class="detail-reply-item-date">' + _escape(formatDate(r.createdAt)) + '</time></div>' +
-                    '<div class="detail-reply-item-body">' + _escape(r.body || '') + '</div>' +
+            var currentUid = auth && auth.currentUser ? auth.currentUser.uid : '';
+            listEl.innerHTML = list.map(function (r, idx) {
+                var isMine = currentUid && r.authorId === currentUid;
+                var cls = isMine ? 'thread-msg thread-msg--mine' : 'thread-msg thread-msg--other';
+                return '<div class="' + cls + '">' +
+                    '<div class="thread-msg-head"><span class="thread-msg-no">' + (idx + 1) + ' :</span>' + _escape(r.authorDisplayName || '匿名') +
+                    ' ' + _escape(formatDate(r.createdAt)) + '</div>' +
+                    '<div class="thread-msg-body">' + _escape(r.body || '') + '</div>' +
                     '</div>';
             }).join('');
         }
