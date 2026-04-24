@@ -904,6 +904,97 @@ textarea,
     background: var(--bg-subtle);
 }
 
+/* スレッドビュー */
+.view-thread {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-color);
+}
+
+.thread-view-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 34px 20px 64px;
+}
+
+.thread-view-body {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.thread-card {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow-sm);
+}
+
+.thread-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.16rem;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.03em;
+}
+
+.thread-meta {
+    margin-top: 8px;
+    font-size: 0.74rem;
+    color: var(--text-mute);
+    letter-spacing: 0.05em;
+}
+
+.thread-reply-wrap {
+    margin-top: 18px;
+}
+
+/* 作成メニュー */
+.composer-overlay,
+.thread-create-overlay {
+    display: none;
+}
+
+.composer-modal {
+    position: relative;
+    max-width: 360px;
+    margin: 84px auto;
+    padding: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+}
+
+.composer-title {
+    margin: 0 0 16px;
+    font-family: var(--font-display);
+    font-size: 1.12rem;
+}
+
+.composer-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.composer-action-btn {
+    justify-content: flex-start;
+    min-height: 44px;
+}
+
+.thread-create-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.thread-create-actions .btn {
+    flex: 1;
+}
+
 /* ---------- 人気タグセクション（note風） ---------- */
 .popular-tags-section {
     margin-bottom: 32px;

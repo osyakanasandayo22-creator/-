@@ -2,8 +2,10 @@
     'use strict';
 
     const STORAGE_KEY = 'philo_posts';
+    const THREADS_STORAGE_KEY = 'philo_threads';
     const THEME_KEY = 'philo_theme';
     const FIRESTORE_COLLECTION = 'posts';
+    const FIRESTORE_THREADS_COLLECTION = 'threads';
     const FIRESTORE_USERS_COLLECTION = 'users';
     var myFollowingSet = new Set();
     const PROFILE_ICON_OPTIONS = ['👤', '👨', '👩', '🧑', '🎭', '🦊', '🐱', '🐶', '🌟', '✨', '🎨', '📚', '🌸', '🍀'];
@@ -22,6 +24,7 @@
     const FEED_INITIAL_PAGE_SIZE = 15;
     const FEED_LOAD_MORE_SIZE = 12;
     const CONTENT_MAX_TEXT_LENGTH = 12000;
+    const THREAD_TITLE_MAX_LENGTH = 80;
     const IMPORT_MAX_FILE_SIZE_BYTES = 1024 * 1024;
     const IMPORT_MAX_ITEMS = 500;
 
@@ -238,6 +241,28 @@
         };
     }
 
+    function normalizeThread(t) {
+        return {
+            id: safeText(t && t.id, 120) || _uid(),
+            title: safeText(t && t.title, THREAD_TITLE_MAX_LENGTH).trim(),
+            createdAt: safeText(t && t.createdAt, 64) || _now(),
+            updatedAt: safeText(t && t.updatedAt, 64) || safeText(t && t.createdAt, 64) || _now(),
+            authorId: safeText(t && t.authorId, 128),
+            authorDisplayName: safeText(t && t.authorDisplayName, DISPLAY_NAME_MAX_LENGTH),
+            authorIcon: safeText(t && t.authorIcon, 8) || '👤',
+            authorIconBg: safeText(t && t.authorIconBg, 20),
+            replies: safeArray(t && t.replies, 800).map(function (r) {
+                return {
+                    id: safeText(r && r.id, 120) || _uid(),
+                    body: safeText(r && r.body, 1000).trim(),
+                    authorId: safeText(r && r.authorId, 128),
+                    authorDisplayName: safeText(r && r.authorDisplayName, DISPLAY_NAME_MAX_LENGTH) || '匿名',
+                    createdAt: safeText(r && r.createdAt, 64) || _now()
+                };
+            }).filter(function (r) { return !!r.body; })
+        };
+    }
+
     function isLikedByMe(thought) {
         if (!auth || !auth.currentUser || !thought.likedBy) return false;
         return thought.likedBy.indexOf(auth.currentUser.uid) >= 0;
@@ -267,6 +292,9 @@
     ];
     thoughts = thoughts.map(normalizeThought);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
+    var rawThreads = safeParseStorage(THREADS_STORAGE_KEY);
+    var threads = Array.isArray(rawThreads) ? rawThreads.map(normalizeThread) : [];
+    localStorage.setItem(THREADS_STORAGE_KEY, JSON.stringify(threads));
 
     const feed = document.getElementById('feed');
     const feedTimeline = document.getElementById('feed-timeline');
@@ -279,6 +307,8 @@
     const modalBody = document.getElementById('modal-body');
     const viewArticle = document.getElementById('view-article');
     const articleBody = document.getElementById('article-body');
+    const viewThread = document.getElementById('view-thread');
+    const threadViewBody = document.getElementById('thread-view-body');
     var previousViewBeforeArticle = 'feed'; // 'feed' | 'profile'
 
     function getDetailContainer() {
@@ -309,6 +339,7 @@
     let editingId = null;
     let pendingDeleteCallback = null;
     let currentDetailId = null;
+    let currentThreadId = null;
     let searchTimeout = null;
     let viewingProfileUserId = null;
     var currentProfileForDrawer = { userId: null, following: [], followers: [] };
@@ -328,6 +359,28 @@
                 if (!currentUid || !t || t.authorId !== currentUid) return;
                 col.doc(t.id).set(t).catch(function (err) {
                     console.warn('Firestore save failed:', err);
+                });
+            });
+        }
+    }
+
+    function saveThreads() {
+        localStorage.setItem(THREADS_STORAGE_KEY, JSON.stringify(threads));
+        if (db) {
+            var col = db.collection(FIRESTORE_THREADS_COLLECTION);
+            var currentUid = auth && auth.currentUser ? auth.currentUser.uid : '';
+            threads.forEach(function (t) {
+                if (!currentUid || !t || t.authorId !== currentUid) return;
+                col.doc(t.id).set({
+                    title: t.title,
+                    createdAt: t.createdAt,
+                    updatedAt: t.updatedAt,
+                    authorId: t.authorId,
+                    authorDisplayName: t.authorDisplayName,
+                    authorIcon: t.authorIcon,
+                    authorIconBg: t.authorIconBg
+                }, { merge: true }).catch(function (err) {
+                    console.warn('Firestore thread save failed:', err);
                 });
             });
         }
@@ -354,6 +407,28 @@
                     authorIcon: d.authorIcon,
                     authorIconBg: d.authorIconBg,
                     authorFollowersCount: typeof d.authorFollowersCount === 'number' ? d.authorFollowersCount : 0
+                }));
+            });
+            return list;
+        });
+    }
+
+    function loadThreadsFromFirestore() {
+        if (!db) return Promise.resolve([]);
+        return db.collection(FIRESTORE_THREADS_COLLECTION).get().then(function (snap) {
+            var list = [];
+            snap.forEach(function (doc) {
+                var d = doc.data() || {};
+                list.push(normalizeThread({
+                    id: doc.id,
+                    title: d.title,
+                    createdAt: d.createdAt,
+                    updatedAt: d.updatedAt,
+                    authorId: d.authorId,
+                    authorDisplayName: d.authorDisplayName,
+                    authorIcon: d.authorIcon,
+                    authorIconBg: d.authorIconBg,
+                    replies: []
                 }));
             });
             return list;
@@ -1274,7 +1349,7 @@
 
     function renderThreadHubSection() {
         if (!threadHubSection || !threadHubList || !threadHubEmpty) return;
-        var list = thoughts.slice().sort(function (a, b) {
+        var list = threads.slice().sort(function (a, b) {
             var ta = a.updatedAt || a.createdAt || '';
             var tb = b.updatedAt || b.createdAt || '';
             return ta > tb ? -1 : ta < tb ? 1 : 0;
@@ -1301,7 +1376,7 @@
                 '</div>' +
                 '<span class="thread-hub-replies">' + replies + 'レス</span>';
             btn.addEventListener('click', function () {
-                showDetail(thread.id);
+                openThreadView(thread.id);
             });
             threadHubList.appendChild(btn);
         });
@@ -1442,6 +1517,132 @@
             if (viewEditor) viewEditor.hidden = true;
         }
         document.body.style.overflow = '';
+    }
+
+    function closeThreadView() {
+        if (viewThread) viewThread.hidden = true;
+        currentThreadId = null;
+        if (viewFeed) viewFeed.hidden = false;
+        document.body.style.overflow = '';
+    }
+
+    function submitThreadReply(threadId, body, onAdded) {
+        if (!isLoggedIn() || !auth || !auth.currentUser) return;
+        var thread = threads.find(function (t) { return t.id === threadId; });
+        if (!thread) return;
+        var reply = {
+            id: _uid(),
+            body: body,
+            authorId: auth.currentUser.uid,
+            authorDisplayName: getDisplayName(auth.currentUser),
+            createdAt: _now()
+        };
+        if (!Array.isArray(thread.replies)) thread.replies = [];
+        thread.replies.push(reply);
+        thread.updatedAt = _now();
+        saveThreads();
+        if (db) {
+            db.collection(FIRESTORE_THREADS_COLLECTION).doc(threadId).set({ updatedAt: thread.updatedAt }, { merge: true }).catch(function () {});
+            db.collection(FIRESTORE_THREADS_COLLECTION).doc(threadId).collection('replies').add({
+                body: reply.body,
+                authorId: reply.authorId,
+                authorDisplayName: reply.authorDisplayName,
+                createdAt: reply.createdAt
+            }).then(function (ref) {
+                if (ref && ref.id) reply.id = ref.id;
+                if (typeof onAdded === 'function') onAdded();
+            }).catch(function () {
+                if (typeof onAdded === 'function') onAdded();
+            });
+        } else if (typeof onAdded === 'function') {
+            onAdded();
+        }
+    }
+
+    function openThreadView(threadId) {
+        var thread = threads.find(function (t) { return t.id === threadId; });
+        if (!thread || !threadViewBody) return;
+        currentThreadId = threadId;
+        if (viewFeed) viewFeed.hidden = true;
+        if (viewProfile) viewProfile.hidden = true;
+        if (viewEditor) viewEditor.hidden = true;
+        if (viewArticle) viewArticle.hidden = true;
+        if (viewThread) viewThread.hidden = false;
+        threadViewBody.innerHTML =
+            '<article class="thread-card">' +
+            '<h2 class="thread-title">' + _escape((thread.title || '').trim() || '（無題）') + '</h2>' +
+            '<p class="thread-meta">スレ主: ' + _escape(thread.authorDisplayName || '匿名') + ' / 作成: ' + _escape(formatDate(thread.createdAt)) + '</p>' +
+            '</article>' +
+            '<section class="detail-reply-section thread-reply-wrap">' +
+            '<h3 class="detail-reply-heading">議論</h3>' +
+            (isLoggedIn()
+                ? '<form class="detail-reply-form" id="thread-reply-form">' +
+                  '<textarea class="detail-reply-textarea" id="thread-reply-textarea" placeholder="レスを書く..." rows="3" maxlength="500"></textarea>' +
+                  '<div class="detail-reply-actions">' +
+                  '<span class="detail-reply-count" id="thread-reply-count">0 / 500</span>' +
+                  '<button type="submit" class="btn primary btn-sm detail-reply-submit">送信</button>' +
+                  '</div></form>'
+                : '<p class="detail-reply-login-hint">ログインすると返信できます。</p>') +
+            '<div class="detail-reply-list" id="thread-reply-list"></div>' +
+            '</section>';
+        var listEl = threadViewBody.querySelector('#thread-reply-list');
+        function renderThreadReplies() {
+            if (!listEl) return;
+            var list = Array.isArray(thread.replies) ? thread.replies.slice() : [];
+            list.sort(function (a, b) { return (a.createdAt || '').localeCompare(b.createdAt || ''); });
+            if (!list.length) {
+                listEl.innerHTML = '<div class="detail-reply-empty">まだレスがありません。最初の返信をどうぞ。</div>';
+                return;
+            }
+            listEl.innerHTML = list.map(function (r) {
+                return '<div class="detail-reply-item">' +
+                    '<div class="detail-reply-item-header"><span class="detail-reply-item-author">' + _escape(r.authorDisplayName || '匿名') + '</span>' +
+                    '<time class="detail-reply-item-date">' + _escape(formatDate(r.createdAt)) + '</time></div>' +
+                    '<div class="detail-reply-item-body">' + _escape(r.body || '') + '</div>' +
+                    '</div>';
+            }).join('');
+        }
+        renderThreadReplies();
+        var form = threadViewBody.querySelector('#thread-reply-form');
+        var ta = threadViewBody.querySelector('#thread-reply-textarea');
+        var count = threadViewBody.querySelector('#thread-reply-count');
+        if (ta && count) {
+            ta.addEventListener('input', function () { count.textContent = (ta.value || '').length + ' / 500'; });
+        }
+        if (form && ta) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var body = (ta.value || '').trim();
+                if (!body) {
+                    showToast('返信内容を入力してください');
+                    return;
+                }
+                submitThreadReply(thread.id, body, renderThreadReplies);
+                ta.value = '';
+                if (count) count.textContent = '0 / 500';
+                renderThreadReplies();
+                renderThreadHubSection();
+            });
+        }
+        if (db) {
+            db.collection(FIRESTORE_THREADS_COLLECTION).doc(thread.id).collection('replies').orderBy('createdAt', 'asc').get()
+                .then(function (snap) {
+                    if (!snap || !snap.docs) return;
+                    thread.replies = snap.docs.map(function (d) {
+                        var data = d.data() || {};
+                        return {
+                            id: d.id,
+                            body: data.body || '',
+                            authorId: data.authorId || '',
+                            authorDisplayName: data.authorDisplayName || '匿名',
+                            createdAt: data.createdAt || _now()
+                        };
+                    });
+                    renderThreadReplies();
+                    saveThreads();
+                })
+                .catch(function () {});
+        }
     }
 
     function showDetail(id) {
@@ -2776,9 +2977,111 @@
         if (viewFeed) viewFeed.hidden = true;
         if (viewProfile) viewProfile.hidden = true;
         if (viewArticle) viewArticle.hidden = true;
+        if (viewThread) viewThread.hidden = true;
         if (viewEditor) viewEditor.hidden = false;
         document.body.style.overflow = 'hidden';
         if (titleEl) titleEl.focus();
+    }
+
+    function openComposerMenu() {
+        var overlay = document.getElementById('composer-overlay');
+        if (!overlay) return;
+        overlay.hidden = false;
+        overlay.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeComposerMenu() {
+        var overlay = document.getElementById('composer-overlay');
+        if (!overlay) return;
+        overlay.hidden = true;
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function updateThreadTitleCount() {
+        var input = document.getElementById('thread-title-input');
+        var countEl = document.getElementById('thread-title-count');
+        if (!input || !countEl) return;
+        countEl.textContent = (input.value || '').length + ' / ' + THREAD_TITLE_MAX_LENGTH;
+    }
+
+    function openThreadCreateModal() {
+        var overlay = document.getElementById('thread-create-overlay');
+        var input = document.getElementById('thread-title-input');
+        if (!overlay) return;
+        overlay.hidden = false;
+        overlay.style.display = 'block';
+        if (input) input.value = '';
+        updateThreadTitleCount();
+        document.body.style.overflow = 'hidden';
+        if (input) input.focus();
+    }
+
+    function closeThreadCreateModal() {
+        var overlay = document.getElementById('thread-create-overlay');
+        if (!overlay) return;
+        overlay.hidden = true;
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function createThreadByTitle() {
+        if (!isLoggedIn() || !auth || !auth.currentUser) {
+            showToast('ログインするとスレッドを作成できます');
+            showLoginModal();
+            return;
+        }
+        var input = document.getElementById('thread-title-input');
+        var title = input ? (input.value || '').trim() : '';
+        if (!title) {
+            showToast('スレッドタイトルを入力してください');
+            return;
+        }
+        if (title.length > THREAD_TITLE_MAX_LENGTH) {
+            showToast('タイトルは' + THREAD_TITLE_MAX_LENGTH + '文字以内で入力してください');
+            return;
+        }
+        var uid = auth.currentUser.uid;
+        var displayName = getDisplayName(auth.currentUser);
+        function doCreate(profile) {
+            profile = profile || {};
+            var newThread = normalizeThread({
+                id: _uid(),
+                title: title,
+                createdAt: _now(),
+                updatedAt: _now(),
+                authorId: uid,
+                authorDisplayName: displayName,
+                authorIcon: profile.icon || '👤',
+                authorIconBg: profile.iconBg || '',
+                replies: []
+            });
+            threads.unshift(newThread);
+            saveThreads();
+            renderThreadHubSection();
+            closeThreadCreateModal();
+            showToast('スレッドを作成しました');
+            openThreadView(newThread.id);
+            if (db) {
+                db.collection(FIRESTORE_THREADS_COLLECTION).doc(newThread.id).set({
+                    title: newThread.title,
+                    createdAt: newThread.createdAt,
+                    updatedAt: newThread.updatedAt,
+                    authorId: newThread.authorId,
+                    authorDisplayName: newThread.authorDisplayName,
+                    authorIcon: newThread.authorIcon,
+                    authorIconBg: newThread.authorIconBg
+                }, { merge: true }).catch(function (err) {
+                    console.warn('Thread create failed:', err);
+                });
+            }
+        }
+        if (db) {
+            loadUserProfile(uid).then(doCreate).catch(function () { doCreate({}); });
+        } else {
+            doCreate({});
+        }
     }
 
     function renderTocList(container, items) {
@@ -3206,17 +3509,59 @@
 
     document.getElementById('post-trigger').addEventListener('click', function () {
         if (!isLoggedIn()) {
-            showToast('ログインすると投稿できます');
+            showToast('ログインすると作成できます');
             showLoginModal();
             return;
         }
-        openPostModal(null);
+        openComposerMenu();
     });
     var editorBack = document.getElementById('editor-back');
     if (editorBack) editorBack.addEventListener('click', function () { closeEditorView(); editingId = null; });
     var articleBackBtn = document.getElementById('article-back-btn');
     if (articleBackBtn) articleBackBtn.addEventListener('click', closeArticleView);
+    var threadBackBtn = document.getElementById('thread-back-btn');
+    if (threadBackBtn) threadBackBtn.addEventListener('click', closeThreadView);
     document.getElementById('submit-post').addEventListener('click', submitPost);
+    var composerCloseBtn = document.getElementById('composer-close');
+    if (composerCloseBtn) composerCloseBtn.addEventListener('click', closeComposerMenu);
+    var composerOverlay = document.getElementById('composer-overlay');
+    if (composerOverlay) {
+        composerOverlay.addEventListener('click', function (e) {
+            if (e.target === composerOverlay) closeComposerMenu();
+        });
+    }
+    var createPostBtn = document.getElementById('create-post-btn');
+    if (createPostBtn) createPostBtn.addEventListener('click', function () {
+        closeComposerMenu();
+        openPostModal(null);
+    });
+    var createThreadBtn = document.getElementById('create-thread-btn');
+    if (createThreadBtn) createThreadBtn.addEventListener('click', function () {
+        closeComposerMenu();
+        openThreadCreateModal();
+    });
+    var threadCreateClose = document.getElementById('thread-create-close');
+    if (threadCreateClose) threadCreateClose.addEventListener('click', closeThreadCreateModal);
+    var threadCreateCancel = document.getElementById('thread-create-cancel');
+    if (threadCreateCancel) threadCreateCancel.addEventListener('click', closeThreadCreateModal);
+    var threadCreateSubmit = document.getElementById('thread-create-submit');
+    if (threadCreateSubmit) threadCreateSubmit.addEventListener('click', createThreadByTitle);
+    var threadCreateOverlay = document.getElementById('thread-create-overlay');
+    if (threadCreateOverlay) {
+        threadCreateOverlay.addEventListener('click', function (e) {
+            if (e.target === threadCreateOverlay) closeThreadCreateModal();
+        });
+    }
+    var threadTitleInput = document.getElementById('thread-title-input');
+    if (threadTitleInput) {
+        threadTitleInput.addEventListener('input', updateThreadTitleCount);
+        threadTitleInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                createThreadByTitle();
+            }
+        });
+    }
 
     (function () {
         var tocEnable = document.getElementById('post-toc-enable');
@@ -3417,6 +3762,12 @@
                 editingId = null;
             } else if (viewArticle && !viewArticle.hidden) {
                 closeArticleView();
+            } else if (viewThread && !viewThread.hidden) {
+                closeThreadView();
+            } else if (threadCreateOverlay && !threadCreateOverlay.hidden) {
+                closeThreadCreateModal();
+            } else if (composerOverlay && !composerOverlay.hidden) {
+                closeComposerMenu();
             } else if (modalOverlay.classList.contains('is-open')) {
                 closeModal(modalOverlay);
             }
@@ -3702,6 +4053,13 @@
         }).catch(function () {
             renderFeed();
         });
+        loadThreadsFromFirestore().then(function (data) {
+            threads = Array.isArray(data) ? data : [];
+            saveThreads();
+            renderThreadHubSection();
+        }).catch(function () {
+            renderThreadHubSection();
+        });
     } else {
         var hash = window.location.hash;
         if (hash && hash.indexOf('#post/') === 0) {
@@ -3710,5 +4068,6 @@
                 showDetail(postId);
             }
         }
+        renderThreadHubSection();
     }
 })();

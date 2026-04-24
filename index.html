@@ -318,6 +318,18 @@
         </main>
     </div>
 
+    <!-- ========== スレッドビュー ========== -->
+    <div class="view view-thread" id="view-thread" hidden>
+        <header class="article-view-header">
+            <button type="button" class="editor-back-btn" id="thread-back-btn" aria-label="戻る">← 戻る</button>
+        </header>
+        <main class="thread-view-main">
+            <div class="thread-view-body" id="thread-view-body">
+                <!-- スレッド内容は script.js で挿入 -->
+            </div>
+        </main>
+    </div>
+
     <!-- モーダル（編集時などに使用・閲覧は view-article で表示） -->
     <div class="overlay" id="modal-overlay" role="dialog" aria-modal="true">
         <div class="modal-content" id="modal-body">
@@ -393,6 +405,35 @@
 
     <!-- 削除確認トースト -->
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- 投稿/スレッド作成メニュー -->
+    <div class="overlay composer-overlay" id="composer-overlay" role="dialog" aria-modal="true" aria-labelledby="composer-title" hidden>
+        <div class="composer-modal">
+            <h2 class="composer-title" id="composer-title">新規作成</h2>
+            <button type="button" class="auth-close-btn" id="composer-close" aria-label="閉じる">&times;</button>
+            <div class="composer-actions">
+                <button type="button" class="btn primary composer-action-btn" id="create-post-btn">投稿を作成</button>
+                <button type="button" class="btn btn--outline composer-action-btn" id="create-thread-btn">スレッドを作成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- スレッド作成モーダル（タイトルのみ） -->
+    <div class="overlay thread-create-overlay" id="thread-create-overlay" role="dialog" aria-modal="true" aria-labelledby="thread-create-title" hidden>
+        <div class="auth-modal thread-create-modal">
+            <h2 id="thread-create-title" class="auth-modal-title">スレッドを作成</h2>
+            <button type="button" class="auth-close-btn" id="thread-create-close" aria-label="閉じる">&times;</button>
+            <div class="thread-create-form">
+                <label class="auth-label" for="thread-title-input">スレッドタイトル</label>
+                <input type="text" id="thread-title-input" class="auth-input" placeholder="議題のタイトル" maxlength="80" autocomplete="off">
+                <span class="char-count" id="thread-title-count">0 / 80</span>
+                <div class="thread-create-actions">
+                    <button type="button" class="btn primary" id="thread-create-submit">作成する</button>
+                    <button type="button" class="btn btn--outline" id="thread-create-cancel">キャンセル</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
