@@ -809,8 +809,9 @@ textarea,
 /* ---------- スレッドハブ（2chライクな議論導線） ---------- */
 .thread-hub-section {
     margin-top: 44px;
+    margin-bottom: 30px;
     padding-top: 24px;
-    border-top: 1px solid var(--border);
+    border-top: none;
 }
 
 .thread-hub-heading {

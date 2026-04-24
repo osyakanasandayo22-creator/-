@@ -4010,16 +4010,30 @@
     if (siteHeader) {
         var lastScrollY = window.scrollY || window.pageYOffset;
         var topThresh = 10;
-        function updateHeaderByScroll() {
-            var y = window.scrollY || window.pageYOffset;
+        var headerMinDelta = 6;
+        var headerHideStartY = 36;
+        var headerTicking = false;
+        var headerLatestY = lastScrollY;
+        function applyHeaderScrollState() {
+            var y = headerLatestY;
+            var delta = y - lastScrollY;
             if (y <= topThresh) {
                 siteHeader.classList.remove('site-header--hidden');
-            } else if (y > lastScrollY) {
+            } else if (Math.abs(delta) < headerMinDelta) {
+                // 微小スクロールでは状態を変えず、ガタつきを防ぐ
+            } else if (delta > 0 && y > headerHideStartY) {
                 siteHeader.classList.add('site-header--hidden');
-            } else {
+            } else if (delta < 0) {
                 siteHeader.classList.remove('site-header--hidden');
             }
             lastScrollY = y;
+            headerTicking = false;
+        }
+        function updateHeaderByScroll() {
+            headerLatestY = window.scrollY || window.pageYOffset || 0;
+            if (headerTicking) return;
+            headerTicking = true;
+            window.requestAnimationFrame(applyHeaderScrollState);
         }
         window.addEventListener('scroll', updateHeaderByScroll, { passive: true });
         updateHeaderByScroll();
