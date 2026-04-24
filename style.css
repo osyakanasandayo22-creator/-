@@ -1106,10 +1106,19 @@ textarea,
 
 .composer-title {
     margin: 0 0 10px;
+    padding-right: 34px;
     font-family: var(--font-sans);
     font-size: 0.84rem;
     letter-spacing: 0.06em;
     color: var(--text-mute);
+}
+
+.composer-modal .auth-close-btn {
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
 }
 
 .composer-actions {
