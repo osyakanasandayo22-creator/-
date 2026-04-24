@@ -272,6 +272,9 @@
     const feedTimeline = document.getElementById('feed-timeline');
     const emptyState = document.getElementById('empty-state');
     const popularTagsSection = document.getElementById('popular-tags-section');
+    const threadHubSection = document.getElementById('thread-hub-section');
+    const threadHubList = document.getElementById('thread-hub-list');
+    const threadHubEmpty = document.getElementById('thread-hub-empty');
     const modalOverlay = document.getElementById('modal-overlay');
     const modalBody = document.getElementById('modal-body');
     const viewArticle = document.getElementById('view-article');
@@ -1269,6 +1272,41 @@
         return card;
     }
 
+    function renderThreadHubSection() {
+        if (!threadHubSection || !threadHubList || !threadHubEmpty) return;
+        var list = thoughts.slice().sort(function (a, b) {
+            var ta = a.updatedAt || a.createdAt || '';
+            var tb = b.updatedAt || b.createdAt || '';
+            return ta > tb ? -1 : ta < tb ? 1 : 0;
+        }).slice(0, 12);
+        if (!list.length) {
+            threadHubList.innerHTML = '';
+            threadHubEmpty.hidden = false;
+            return;
+        }
+        threadHubEmpty.hidden = true;
+        threadHubList.innerHTML = '';
+        list.forEach(function (thread) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'thread-hub-card';
+            btn.setAttribute('role', 'listitem');
+            var title = (thread.title || '').trim() || '（無題）';
+            var owner = (thread.authorDisplayName || '匿名').trim() || '匿名';
+            var replies = Array.isArray(thread.replies) ? thread.replies.length : 0;
+            btn.innerHTML =
+                '<div class="thread-hub-main">' +
+                '<p class="thread-hub-title">' + _escape(title) + ' - ' + _escape(owner) + '</p>' +
+                '<div class="thread-hub-meta">最終更新: ' + _escape(formatDate(thread.updatedAt || thread.createdAt)) + '</div>' +
+                '</div>' +
+                '<span class="thread-hub-replies">' + replies + 'レス</span>';
+            btn.addEventListener('click', function () {
+                showDetail(thread.id);
+            });
+            threadHubList.appendChild(btn);
+        });
+    }
+
     /** 追加読み込み：次の N 件をタイムラインに追加 */
     function appendFeedCards(fromIndex, count) {
         var timeline = feedTimeline || feed;
@@ -1296,6 +1334,7 @@
         renderPopularTagsSection();
         renderFeedSidebar();
         renderMasterpieceSidebar();
+        renderThreadHubSection();
         var list = getFilteredThoughts();
         var timeline = feedTimeline || feed;
         var cards = timeline.querySelectorAll('.card');
