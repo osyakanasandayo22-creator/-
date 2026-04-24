@@ -91,6 +91,15 @@
             <section class="popular-tags-section" id="popular-tags-section" aria-label="人気のタグ" hidden>
                 <!-- 人気タグ＋各タグの人気投稿（最大3件）を script で挿入 -->
             </section>
+            <section class="thread-hub-section" id="thread-hub-section" aria-label="スレッド">
+                <h2 class="thread-hub-heading">スレッド</h2>
+                <p class="thread-hub-desc">議題に対して、みんなでレスを重ねる場所</p>
+                <div class="thread-hub-controls">
+                    <input type="search" id="thread-search-input" class="thread-hub-search" placeholder="スレッドタイトルを検索" autocomplete="off" aria-label="スレッド検索">
+                </div>
+                <div class="thread-hub-list" id="thread-hub-list" role="list"></div>
+                <p class="thread-hub-empty" id="thread-hub-empty" hidden>まだスレッドがありません。</p>
+            </section>
             <div id="feed-timeline" class="feed-timeline">
                 <h2 class="timeline-heading" id="timeline-heading">さまざまな哲学</h2>
                 <div class="empty-state" id="empty-state" hidden>
@@ -98,12 +107,6 @@
                     <p>右下の <strong>+</strong> から、最初の一節を書き留めてください。</p>
                 </div>
             </div>
-            <section class="thread-hub-section" id="thread-hub-section" aria-label="スレッド">
-                <h2 class="thread-hub-heading">スレッド</h2>
-                <p class="thread-hub-desc">議題に対して、みんなでレスを重ねる場所</p>
-                <div class="thread-hub-list" id="thread-hub-list" role="list"></div>
-                <p class="thread-hub-empty" id="thread-hub-empty" hidden>まだスレッドがありません。</p>
-            </section>
             </div>
             <aside class="feed-sidebar feed-sidebar--right" id="feed-sidebar-right" aria-label="名著">
                 <div class="feed-sidebar-inner">

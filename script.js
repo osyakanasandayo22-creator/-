@@ -304,6 +304,7 @@
     const threadHubSection = document.getElementById('thread-hub-section');
     const threadHubList = document.getElementById('thread-hub-list');
     const threadHubEmpty = document.getElementById('thread-hub-empty');
+    const threadSearchInput = document.getElementById('thread-search-input');
     const modalOverlay = document.getElementById('modal-overlay');
     const modalBody = document.getElementById('modal-body');
     const viewArticle = document.getElementById('view-article');
@@ -1350,7 +1351,11 @@
 
     function renderThreadHubSection() {
         if (!threadHubSection || !threadHubList || !threadHubEmpty) return;
-        var list = threads.slice().sort(function (a, b) {
+        var query = threadSearchInput && threadSearchInput.value ? threadSearchInput.value.trim().toLowerCase() : '';
+        var list = threads.slice().filter(function (t) {
+            if (!query) return true;
+            return (t.title || '').toLowerCase().indexOf(query) >= 0 || (t.authorDisplayName || '').toLowerCase().indexOf(query) >= 0;
+        }).sort(function (a, b) {
             var ta = a.updatedAt || a.createdAt || '';
             var tb = b.updatedAt || b.createdAt || '';
             return ta > tb ? -1 : ta < tb ? 1 : 0;
@@ -3636,6 +3641,18 @@
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(renderFeed, 180);
     });
+    if (threadSearchInput) {
+        threadSearchInput.addEventListener('input', function () {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(renderThreadHubSection, 120);
+        });
+        threadSearchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                threadSearchInput.value = '';
+                renderThreadHubSection();
+            }
+        });
+    }
     searchInput.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { searchInput.value = ''; renderFeed(); }
     });
