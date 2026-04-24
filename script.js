@@ -25,6 +25,7 @@
     const FEED_LOAD_MORE_SIZE = 12;
     const CONTENT_MAX_TEXT_LENGTH = 12000;
     const THREAD_TITLE_MAX_LENGTH = 80;
+    const THREAD_MAX_REPLIES = 1000;
     const IMPORT_MAX_FILE_SIZE_BYTES = 1024 * 1024;
     const IMPORT_MAX_ITEMS = 500;
 
@@ -1530,6 +1531,11 @@
         if (!isLoggedIn() || !auth || !auth.currentUser) return;
         var thread = threads.find(function (t) { return t.id === threadId; });
         if (!thread) return;
+        var currentReplies = Array.isArray(thread.replies) ? thread.replies.length : 0;
+        if (currentReplies >= THREAD_MAX_REPLIES) {
+            showToast('このスレッドは1000レスに達したため、返信できません');
+            return;
+        }
         var reply = {
             id: _uid(),
             body: body,
@@ -1568,14 +1574,18 @@
         if (viewEditor) viewEditor.hidden = true;
         if (viewArticle) viewArticle.hidden = true;
         if (viewThread) viewThread.hidden = false;
+        var replyCount = Array.isArray(thread.replies) ? thread.replies.length : 0;
+        var isThreadClosed = replyCount >= THREAD_MAX_REPLIES;
         threadViewBody.innerHTML =
             '<section class="thread-topic-bar">' +
             '<h2 class="thread-topic-title">' + _escape((thread.title || '').trim() || '（無題）') + '</h2>' +
-            '<p class="thread-topic-meta">スレ主: ' + _escape(thread.authorDisplayName || '匿名') + ' / 作成: ' + _escape(formatDate(thread.createdAt)) + '</p>' +
+            '<p class="thread-topic-meta">スレ主: ' + _escape(thread.authorDisplayName || '匿名') + ' / 作成: ' + _escape(formatDate(thread.createdAt)) + ' / レス: ' + replyCount + '</p>' +
             '</section>' +
             '<section class="detail-reply-section thread-reply-wrap">' +
             '<h3 class="detail-reply-heading">議論</h3>' +
-            (isLoggedIn()
+            (isThreadClosed
+                ? '<p class="detail-reply-login-hint">このスレッドは1000レスに達したため、返信できません。</p>'
+                : isLoggedIn()
                 ? '<form class="detail-reply-form" id="thread-reply-form">' +
                   '<textarea class="detail-reply-textarea" id="thread-reply-textarea" placeholder="レスを書く..." rows="3" maxlength="500"></textarea>' +
                   '<div class="detail-reply-actions">' +
@@ -1615,6 +1625,10 @@
         if (form && ta) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
+                if ((Array.isArray(thread.replies) ? thread.replies.length : 0) >= THREAD_MAX_REPLIES) {
+                    showToast('このスレッドは1000レスに達したため、返信できません');
+                    return;
+                }
                 var body = (ta.value || '').trim();
                 if (!body) {
                     showToast('返信内容を入力してください');

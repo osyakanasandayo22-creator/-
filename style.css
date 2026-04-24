@@ -1038,11 +1038,11 @@ textarea,
     display: inline-block;
     max-width: min(66%, 680px);
     text-align: left;
-    padding: 8px 11px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 /* 作成メニュー */
