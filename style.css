@@ -990,6 +990,13 @@ textarea,
     gap: 8px;
 }
 
+/* 共通の返信リスト制限（max-height/overflow）をスレッドでは無効化 */
+.view-thread .detail-reply-list.thread-stream {
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0;
+}
+
 .thread-msg {
     border: none;
     border-radius: 0;
