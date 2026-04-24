@@ -1058,32 +1058,50 @@ textarea,
     display: none;
 }
 
+.composer-overlay {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
 .composer-modal {
-    position: relative;
-    max-width: 360px;
-    margin: 84px auto;
-    padding: 24px;
+    position: fixed;
+    right: 92px;
+    bottom: 26px;
+    width: 260px;
+    margin: 0;
+    padding: 14px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: var(--shadow-lg);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    animation: composerPopIn 180ms var(--ease-out);
 }
 
 .composer-title {
-    margin: 0 0 16px;
-    font-family: var(--font-display);
-    font-size: 1.12rem;
+    margin: 0 0 10px;
+    font-family: var(--font-sans);
+    font-size: 0.84rem;
+    letter-spacing: 0.06em;
+    color: var(--text-mute);
 }
 
 .composer-actions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .composer-action-btn {
-    justify-content: flex-start;
-    min-height: 44px;
+    justify-content: center;
+    min-height: 40px;
+    font-size: 0.84rem;
+    border-radius: 10px;
+}
+
+@keyframes composerPopIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .thread-create-actions {
@@ -1094,6 +1112,65 @@ textarea,
 
 .thread-create-actions .btn {
     flex: 1;
+}
+
+.thread-create-modal {
+    max-width: 500px;
+    border-radius: 20px;
+    border: 1px solid color-mix(in srgb, var(--border) 84%, var(--accent) 16%);
+    box-shadow: var(--shadow-lg);
+}
+
+.thread-create-modal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 24px;
+    right: 24px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.75;
+}
+
+.thread-create-form {
+    margin-top: 2px;
+}
+
+.thread-create-hint {
+    margin: 0 0 10px;
+    font-size: 0.76rem;
+    color: var(--text-mute);
+    letter-spacing: 0.03em;
+}
+
+.thread-create-form .auth-input {
+    border-radius: 12px;
+    border: 1px solid var(--border-strong);
+    background: color-mix(in srgb, var(--bg-subtle) 65%, var(--bg-card) 35%);
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
+}
+
+.thread-create-form .auth-input::placeholder {
+    color: var(--text-mute);
+}
+
+.thread-create-form .auth-input:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-card);
+}
+
+.thread-create-form .auth-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: var(--bg-card);
+}
+
+.thread-create-form .char-count {
+    margin-top: 6px;
+    margin-bottom: 12px;
+    text-align: right;
 }
 
 /* ---------- 人気タグセクション（note風） ---------- */
@@ -3976,6 +4053,11 @@ textarea,
     .article-view-main { padding: 24px 16px 56px; }
     .thread-view-main { padding: 12px 14px 174px; }
     .thread-msg--mine .thread-msg-body { max-width: 88%; }
+    .composer-modal {
+        right: 16px;
+        bottom: 82px;
+        width: min(250px, calc(100vw - 28px));
+    }
     .view-thread .detail-reply-form {
         width: calc(100vw - 20px);
         bottom: max(10px, env(safe-area-inset-bottom, 0px) + 6px);
