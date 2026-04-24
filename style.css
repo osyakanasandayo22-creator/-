@@ -169,7 +169,7 @@ textarea,
     backdrop-filter: saturate(140%) blur(12px);
     -webkit-backdrop-filter: saturate(140%) blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: calc(18px + env(safe-area-inset-top, 0px)) 24px 14px;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 24px 10px;
     transition: transform var(--t-base) var(--ease-out), background-color var(--t-base) var(--ease);
 }
 
@@ -189,18 +189,30 @@ textarea,
     max-width: 1200px;
     margin: 0 auto;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
+    min-width: 0;
+}
+
+/* タイトル＋サブコピーのグループ */
+.header-title-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    flex-shrink: 0;
+    padding-left: 12px;
 }
 
 /* サイトタイトル（セリフで哲学的に） */
 .site-title {
     font-family: var(--font-display);
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 600;
     margin: 0;
+    line-height: 1;
     letter-spacing: 0.02em;
     color: var(--text-main);
     cursor: pointer;
@@ -210,7 +222,7 @@ textarea,
 .site-title::before {
     content: '';
     position: absolute;
-    left: -12px;
+    left: -10px;
     top: 50%;
     transform: translateY(-50%);
     width: 4px;
@@ -227,18 +239,20 @@ textarea,
 }
 
 .site-desc {
-    margin: 2px 0 0 12px;
-    font-size: 0.78rem;
+    margin: 0;
+    font-size: 0.7rem;
     color: var(--text-mute);
-    width: 100%;
     font-family: var(--font-serif);
     letter-spacing: 0.08em;
+    white-space: nowrap;
 }
 
 .header-actions {
     display: flex;
-    gap: 4px;
+    flex-wrap: nowrap;
+    gap: 2px;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .notification-wrapper {
@@ -411,9 +425,9 @@ textarea,
 /* ========== 検索バー ========== */
 .search-bar {
     max-width: 1200px;
-    margin: 12px auto 0;
+    margin: 10px auto 0;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     align-items: center;
 }
@@ -431,6 +445,12 @@ textarea,
     transition: box-shadow var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), background var(--t-fast);
 }
 
+.search-bar input[type="search"]::-webkit-search-decoration,
+.search-bar input[type="search"]::-webkit-search-cancel-button,
+.search-bar input[type="search"]::-webkit-search-results-button,
+.search-bar input[type="search"]::-webkit-search-results-decoration {
+    display: none;
+}
 .search-bar input[type="search"]::placeholder {
     color: var(--text-mute);
 }
@@ -462,9 +482,10 @@ textarea,
 .search-hint {
     font-size: 0.78rem;
     color: var(--text-mute);
-    width: 100%;
     font-style: italic;
+    white-space: nowrap;
 }
+.search-hint:empty { display: none; }
 
 /* ========== フィード（全体レイアウト） ========== */
 .feed {
@@ -3623,10 +3644,13 @@ textarea,
         text-size-adjust: 100%;
     }
 
-    .site-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; }
-    .header-inner { gap: 10px; }
-    .site-title { font-size: 1.3rem; }
-    .site-desc { font-size: 0.72rem; margin-left: 10px; }
+    .site-header { padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px; }
+    .header-inner { gap: 8px; }
+    .header-title-group { padding-left: 8px; }
+    .site-title { font-size: 1.2rem; }
+    .site-desc { font-size: 0.68rem; }
+    .header-actions { gap: 1px; }
+    .profile-display-name { max-width: 80px; }
     .feed { padding: 0 16px 80px; margin: 20px auto; }
     .search-bar { gap: 8px; margin-top: 10px; }
     .search-bar input[type="search"] { min-width: 0; }
