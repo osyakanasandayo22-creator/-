@@ -345,6 +345,8 @@
     let pendingDeleteCallback = null;
     let currentDetailId = null;
     let currentThreadId = null;
+    /** スレッド表示中: replies サブコレのリアルタイム購読解除用 */
+    var threadRepliesUnsubscribe = null;
     let searchTimeout = null;
     let viewingProfileUserId = null;
     var currentProfileForDrawer = { userId: null, following: [], followers: [] };
@@ -1594,7 +1596,17 @@
         document.body.style.overflow = '';
     }
 
+    function detachThreadRepliesListener() {
+        if (threadRepliesUnsubscribe) {
+            try {
+                threadRepliesUnsubscribe();
+            } catch (e) {}
+            threadRepliesUnsubscribe = null;
+        }
+    }
+
     function closeThreadView() {
+        detachThreadRepliesListener();
         if (viewThread) viewThread.hidden = true;
         currentThreadId = null;
         if (viewFeed) viewFeed.hidden = false;
@@ -1666,6 +1678,7 @@
     function openThreadView(threadId) {
         var thread = threads.find(function (t) { return t.id === threadId; });
         if (!thread || !threadViewBody) return;
+        detachThreadRepliesListener();
         currentThreadId = threadId;
         if (viewFeed) viewFeed.hidden = true;
         if (viewProfile) viewProfile.hidden = true;
@@ -1725,6 +1738,41 @@
             }).join('');
             updateThreadTopicMeta();
         }
+        /** 他端末で 1000 レス到達したとき、返信フォームを閉じる表記に切り替え */
+        function applyThreadMaxRepliesIfNeeded() {
+            if (!threadViewBody) return;
+            var n = Array.isArray(thread.replies) ? thread.replies.length : (thread.replyCount || 0);
+            if (n < THREAD_MAX_REPLIES) return;
+            var form = threadViewBody.querySelector('#thread-reply-form');
+            if (!form) return;
+            var p = document.createElement('p');
+            p.className = 'detail-reply-login-hint';
+            p.textContent = 'このスレッドは1000レスに達したため、返信できません。';
+            if (form.parentNode) {
+                form.parentNode.replaceChild(p, form);
+            }
+        }
+        function applyRepliesFromSnapshot(snap) {
+            if (!snap) return;
+            if (!listEl) return;
+            thread.replies = snap.docs.map(function (d) {
+                var data = d.data() || {};
+                return {
+                    id: d.id,
+                    body: data.body || '',
+                    authorId: data.authorId || '',
+                    authorDisplayName: data.authorDisplayName || '匿名',
+                    createdAt: data.createdAt || _now()
+                };
+            });
+            thread.replyCount = thread.replies.length;
+            renderThreadReplies();
+            applyThreadMaxRepliesIfNeeded();
+            try {
+                saveThreads();
+            } catch (e) {}
+            renderThreadHubSection();
+        }
         renderThreadReplies();
         var form = threadViewBody.querySelector('#thread-reply-form');
         var ta = threadViewBody.querySelector('#thread-reply-textarea');
@@ -1755,24 +1803,16 @@
             });
         }
         if (db) {
-            db.collection(FIRESTORE_THREADS_COLLECTION).doc(thread.id).collection('replies').orderBy('createdAt', 'asc').get()
-                .then(function (snap) {
-                    if (!snap || !snap.docs) return;
-                    thread.replies = snap.docs.map(function (d) {
-                        var data = d.data() || {};
-                        return {
-                            id: d.id,
-                            body: data.body || '',
-                            authorId: data.authorId || '',
-                            authorDisplayName: data.authorDisplayName || '匿名',
-                            createdAt: data.createdAt || _now()
-                        };
-                    });
-                    thread.replyCount = thread.replies.length;
-                    renderThreadReplies();
-                    saveThreads();
-                })
-                .catch(function () {});
+            var threadRepliesRef = db.collection(FIRESTORE_THREADS_COLLECTION).doc(thread.id).collection('replies')
+                .orderBy('createdAt', 'asc');
+            threadRepliesUnsubscribe = threadRepliesRef.onSnapshot(
+                function (snap) {
+                    applyRepliesFromSnapshot(snap);
+                },
+                function (err) {
+                    console.warn('Thread replies listener error', err);
+                }
+            );
         }
     }
 
@@ -3104,6 +3144,8 @@
             }
         }
         updateCharCounts();
+        detachThreadRepliesListener();
+        currentThreadId = null;
         if (viewFeed) viewFeed.hidden = true;
         if (viewProfile) viewProfile.hidden = true;
         if (viewArticle) viewArticle.hidden = true;
