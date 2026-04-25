@@ -279,8 +279,8 @@
 
     function getLikeIconSrc(liked) {
         var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        if (isDark) return liked ? 'images/テーマ黒用いいね済み.png' : 'images/白色いいね通常時.png';
-        return liked ? 'images/テーマ白用いいね済み.png' : 'images/黒色いいね通常時.png';
+        if (liked) return 'images/いいねオレンジ.png';
+        return isDark ? 'images/白色いいね通常時.png' : 'images/黒色いいね通常時.png';
     }
 
     function updateNotificationIcon() {
