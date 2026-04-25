@@ -252,6 +252,7 @@
             authorDisplayName: safeText(t && t.authorDisplayName, DISPLAY_NAME_MAX_LENGTH),
             authorIcon: safeText(t && t.authorIcon, 8) || '👤',
             authorIconBg: safeText(t && t.authorIconBg, 20),
+            replyCount: Math.max(0, typeof (t && t.replyCount) === 'number' ? t.replyCount : 0),
             replies: safeArray(t && t.replies, 800).map(function (r) {
                 return {
                     id: safeText(r && r.id, 120) || _uid(),
@@ -380,7 +381,8 @@
                     authorId: t.authorId,
                     authorDisplayName: t.authorDisplayName,
                     authorIcon: t.authorIcon,
-                    authorIconBg: t.authorIconBg
+                    authorIconBg: t.authorIconBg,
+                    replyCount: typeof t.replyCount === 'number' ? t.replyCount : 0
                 }, { merge: true }).catch(function (err) {
                     console.warn('Firestore thread save failed:', err);
                 });
@@ -430,6 +432,7 @@
                     authorDisplayName: d.authorDisplayName,
                     authorIcon: d.authorIcon,
                     authorIconBg: d.authorIconBg,
+                    replyCount: typeof d.replyCount === 'number' ? d.replyCount : 0,
                     replies: []
                 }));
             });
@@ -446,6 +449,13 @@
                 renderFeed();
                 renderTagFilter();
                 if (isLoggedIn()) loadMyFollowing();
+                return loadThreadsFromFirestore();
+            }).then(function (threadData) {
+                if (Array.isArray(threadData)) {
+                    threads = threadData;
+                    saveThreads();
+                    renderThreadHubSection();
+                }
                 showToast('更新しました');
             }).catch(function () {
                 renderFeed();
@@ -1374,7 +1384,9 @@
             btn.setAttribute('role', 'listitem');
             var title = (thread.title || '').trim() || '（無題）';
             var owner = (thread.authorDisplayName || '匿名').trim() || '匿名';
-            var replies = Array.isArray(thread.replies) ? thread.replies.length : 0;
+            var replies = typeof thread.replyCount === 'number'
+                ? thread.replyCount
+                : (Array.isArray(thread.replies) ? thread.replies.length : 0);
             btn.innerHTML =
                 '<div class="thread-hub-main">' +
                 '<p class="thread-hub-title">' + _escape(title) + ' - ' + _escape(owner) + '</p>' +
@@ -1536,7 +1548,9 @@
         if (!isLoggedIn() || !auth || !auth.currentUser) return;
         var thread = threads.find(function (t) { return t.id === threadId; });
         if (!thread) return;
-        var currentReplies = Array.isArray(thread.replies) ? thread.replies.length : 0;
+        var currentReplies = typeof thread.replyCount === 'number'
+            ? thread.replyCount
+            : (Array.isArray(thread.replies) ? thread.replies.length : 0);
         if (currentReplies >= THREAD_MAX_REPLIES) {
             showToast('このスレッドは1000レスに達したため、返信できません');
             return;
@@ -1549,24 +1563,46 @@
             createdAt: _now()
         };
         if (!Array.isArray(thread.replies)) thread.replies = [];
-        thread.replies.push(reply);
-        thread.updatedAt = _now();
-        saveThreads();
+        function applyLocalAfterSuccess(newCount, rid) {
+            if (typeof newCount === 'number') {
+                thread.replyCount = newCount;
+            } else {
+                thread.replyCount = (thread.replyCount || 0) + 1;
+            }
+            reply.id = rid || reply.id;
+            thread.replies.push(reply);
+            thread.updatedAt = _now();
+            saveThreads();
+            if (typeof onAdded === 'function') onAdded();
+        }
         if (db) {
-            db.collection(FIRESTORE_THREADS_COLLECTION).doc(threadId).set({ updatedAt: thread.updatedAt }, { merge: true }).catch(function () {});
-            db.collection(FIRESTORE_THREADS_COLLECTION).doc(threadId).collection('replies').add({
-                body: reply.body,
-                authorId: reply.authorId,
-                authorDisplayName: reply.authorDisplayName,
-                createdAt: reply.createdAt
-            }).then(function (ref) {
-                if (ref && ref.id) reply.id = ref.id;
-                if (typeof onAdded === 'function') onAdded();
-            }).catch(function () {
-                if (typeof onAdded === 'function') onAdded();
+            var threadRef = db.collection(FIRESTORE_THREADS_COLLECTION).doc(threadId);
+            db.runTransaction(function (transaction) {
+                return transaction.get(threadRef).then(function (doc) {
+                    if (!doc || !doc.exists) throw new Error('no thread');
+                    var d = doc.data() || {};
+                    var prev = typeof d.replyCount === 'number' ? d.replyCount : 0;
+                    if (prev >= THREAD_MAX_REPLIES) throw new Error('full');
+                    var newCount = prev + 1;
+                    var now = _now();
+                    var replyRef = threadRef.collection('replies').doc();
+                    transaction.set(threadRef, { updatedAt: now, replyCount: newCount }, { merge: true });
+                    transaction.set(replyRef, {
+                        body: reply.body,
+                        authorId: reply.authorId,
+                        authorDisplayName: reply.authorDisplayName,
+                        createdAt: reply.createdAt
+                    });
+                    return { newCount: newCount, replyId: replyRef.id };
+                });
+            }).then(function (result) {
+                applyLocalAfterSuccess(result && result.newCount, result && result.replyId);
+            }).catch(function (err) {
+                console.warn('Thread reply transaction failed', err);
+                showToast('返信の保存に失敗しました');
             });
-        } else if (typeof onAdded === 'function') {
-            onAdded();
+        } else {
+            applyLocalAfterSuccess(undefined, reply.id);
         }
     }
 
@@ -1579,7 +1615,10 @@
         if (viewEditor) viewEditor.hidden = true;
         if (viewArticle) viewArticle.hidden = true;
         if (viewThread) viewThread.hidden = false;
-        var replyCount = Array.isArray(thread.replies) ? thread.replies.length : 0;
+        var replyCount = typeof thread.replyCount === 'number' ? thread.replyCount : 0;
+        if (Array.isArray(thread.replies) && thread.replies.length > replyCount) {
+            replyCount = thread.replies.length;
+        }
         var isThreadClosed = replyCount >= THREAD_MAX_REPLIES;
         threadViewBody.innerHTML =
             '<section class="thread-topic-bar">' +
@@ -1601,12 +1640,20 @@
             '<div class="detail-reply-list thread-stream" id="thread-reply-list"></div>' +
             '</section>';
         var listEl = threadViewBody.querySelector('#thread-reply-list');
+        function updateThreadTopicMeta() {
+            var topicMeta = threadViewBody.querySelector('.thread-topic-meta');
+            if (!topicMeta) return;
+            var n = typeof thread.replyCount === 'number' ? thread.replyCount : 0;
+            if (Array.isArray(thread.replies) && thread.replies.length > n) n = thread.replies.length;
+            topicMeta.textContent = 'スレ主: ' + (thread.authorDisplayName || '匿名') + ' / 作成: ' + formatDate(thread.createdAt) + ' / レス: ' + n;
+        }
         function renderThreadReplies() {
             if (!listEl) return;
             var list = Array.isArray(thread.replies) ? thread.replies.slice() : [];
             list.sort(function (a, b) { return (a.createdAt || '').localeCompare(b.createdAt || ''); });
             if (!list.length) {
                 listEl.innerHTML = '<div class="detail-reply-empty">まだレスがありません。最初の返信をどうぞ。</div>';
+                updateThreadTopicMeta();
                 return;
             }
             var currentUid = auth && auth.currentUser ? auth.currentUser.uid : '';
@@ -1619,6 +1666,7 @@
                     '<div class="thread-msg-body">' + _escape(r.body || '') + '</div>' +
                     '</div>';
             }).join('');
+            updateThreadTopicMeta();
         }
         renderThreadReplies();
         var form = threadViewBody.querySelector('#thread-reply-form');
@@ -1630,7 +1678,9 @@
         if (form && ta) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
-                if ((Array.isArray(thread.replies) ? thread.replies.length : 0) >= THREAD_MAX_REPLIES) {
+                var curN = typeof thread.replyCount === 'number' ? thread.replyCount : 0;
+                if (Array.isArray(thread.replies) && thread.replies.length > curN) curN = thread.replies.length;
+                if (curN >= THREAD_MAX_REPLIES) {
                     showToast('このスレッドは1000レスに達したため、返信できません');
                     return;
                 }
@@ -1639,11 +1689,12 @@
                     showToast('返信内容を入力してください');
                     return;
                 }
-                submitThreadReply(thread.id, body, renderThreadReplies);
+                submitThreadReply(thread.id, body, function () {
+                    renderThreadReplies();
+                    renderThreadHubSection();
+                });
                 ta.value = '';
                 if (count) count.textContent = '0 / 500';
-                renderThreadReplies();
-                renderThreadHubSection();
             });
         }
         if (db) {
@@ -1660,6 +1711,7 @@
                             createdAt: data.createdAt || _now()
                         };
                     });
+                    thread.replyCount = thread.replies.length;
                     renderThreadReplies();
                     saveThreads();
                 })
@@ -3075,6 +3127,7 @@
                 authorDisplayName: displayName,
                 authorIcon: profile.icon || '👤',
                 authorIconBg: profile.iconBg || '',
+                replyCount: 0,
                 replies: []
             });
             threads.unshift(newThread);
@@ -3091,7 +3144,8 @@
                     authorId: newThread.authorId,
                     authorDisplayName: newThread.authorDisplayName,
                     authorIcon: newThread.authorIcon,
-                    authorIconBg: newThread.authorIconBg
+                    authorIconBg: newThread.authorIconBg,
+                    replyCount: 0
                 }, { merge: true }).catch(function (err) {
                     console.warn('Thread create failed:', err);
                 });

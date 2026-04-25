@@ -24,6 +24,58 @@ service cloud.firestore {
         && request.resource.data.body.size() <= 500
         && request.resource.data.authorId == request.auth.uid;
     }
+    // スレッド本体（掲示板のトピック）新規作成
+    function safeThreadCreatePayload() {
+      return request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.authorId is string
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorDisplayName is string
+        && request.resource.data.authorDisplayName.size() <= 20
+        && request.resource.data.authorIcon is string
+        && request.resource.data.authorIcon.size() <= 8
+        && request.resource.data.authorIconBg is string
+        && request.resource.data.authorIconBg.size() <= 20
+        && request.resource.data.createdAt is string
+        && request.resource.data.updatedAt is string
+        && request.resource.data.replyCount is int
+        && request.resource.data.replyCount == 0;
+    }
+    // 返信が付いたあと: replyCount をちょうど +1、他フィールドは据え置き
+    function threadReplyBump() {
+      let prevC = resource.data.keys().hasAll(['replyCount']) ? int(resource.data.replyCount) : 0;
+      return isSignedIn()
+        && int(request.resource.data.replyCount) == prevC + 1
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'replyCount'])
+        && request.resource.data.replyCount is int
+        && request.resource.data.replyCount > 0
+        && request.resource.data.replyCount <= 1000;
+    }
+    function threadOwnerUpdate() {
+      return isSignedIn()
+        && request.auth.uid == resource.data.authorId
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        // レス数は返信専用ルール（threadReplyBump）でのみ増やせる
+        && int(request.resource.data.keys().hasAll(['replyCount']) ? request.resource.data.replyCount : 0)
+           == int(resource.data.keys().hasAll(['replyCount']) ? resource.data.replyCount : 0);
+    }
+    // スレッドへのレス（2ch 風）
+    function safeThreadReplyPayload() {
+      return request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 500
+        && request.resource.data.authorId is string
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorDisplayName is string
+        && request.resource.data.authorDisplayName.size() <= 20
+        && request.resource.data.createdAt is string;
+    }
 
     // 投稿（誰でも読める / ログイン済みなら作成・更新・削除）
     match /posts/{postId} {
@@ -44,6 +96,20 @@ service cloud.firestore {
           (resource.data.authorId == request.auth.uid ||
            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy']));
         allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      }
+    }
+
+    // スレッド（誰でも読める / 作成者がスレッド文書を管理 / 返信者は replyCount+updatedAt のみ）
+    match /threads/{threadId} {
+      allow read: if true;
+      allow create: if isSignedIn() && safeThreadCreatePayload();
+      allow update: if isSignedIn() && (threadOwnerUpdate() || threadReplyBump());
+      allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+
+      match /replies/{replyId} {
+        allow read: if true;
+        allow create: if isSignedIn() && safeThreadReplyPayload();
+        allow update, delete: if false;
       }
     }
 
