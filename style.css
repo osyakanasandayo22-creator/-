@@ -750,7 +750,7 @@ textarea,
     .feed-timeline {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 20px 24px;
+        gap: 14px 18px;
     }
     .feed-timeline .timeline-heading,
     .feed-timeline .empty-state,
@@ -759,7 +759,7 @@ textarea,
     }
     .feed-timeline .card {
         margin-bottom: 0;
-        min-height: 148px;
+        min-height: 0;
     }
 }
 
@@ -1231,8 +1231,12 @@ textarea,
 
 .popular-tag-name {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 8px;
+    gap: 6px 8px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     margin: 0 0 12px 0;
     font-family: var(--font-display);
     font-size: 1.05rem;
@@ -1243,10 +1247,20 @@ textarea,
     border-radius: 6px;
     transition: color var(--t-fast), transform var(--t-fast);
 }
+.popular-tag-label {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
 .popular-tag-name:hover { color: var(--accent); transform: translateX(2px); }
 .popular-tag-name:focus { outline: none; background: var(--bg-subtle); }
 
 .popular-tag-count {
+    flex-shrink: 0;
+    white-space: nowrap;
     font-size: 0.78rem;
     font-weight: 400;
     color: var(--text-mute);
@@ -1575,6 +1589,148 @@ textarea,
     min-width: 1.25em;
     text-align: left;
     font-variant-numeric: tabular-nums;
+}
+
+/* ========== ホーム：投稿カードをコンパクト（プロフィール等の .card は対象外） ========== */
+.view-feed .card {
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    min-height: 0;
+    border-radius: 10px;
+}
+.view-feed .card::before {
+    top: 10px;
+    bottom: 10px;
+}
+.view-feed .card h3 {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+}
+.view-feed .card .preview {
+    font-size: 0.8rem;
+    line-height: 1.55;
+    min-height: 2.45em;
+    letter-spacing: 0.02em;
+}
+.view-feed .card-author {
+    margin-bottom: 8px;
+    gap: 6px;
+}
+.view-feed .card-author-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 0.85rem;
+}
+.view-feed .card-author-icon--initial {
+    font-size: 0.7rem;
+}
+.view-feed .card-author-name {
+    font-size: 0.75rem;
+}
+.view-feed .verified-badge {
+    font-size: 0.7em;
+    width: 0.95em;
+    height: 0.95em;
+}
+.view-feed .card .meta {
+    margin-top: 8px;
+    gap: 4px 6px;
+}
+.view-feed .card .tag {
+    font-size: 0.64rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+}
+.view-feed .card .date {
+    font-size: 0.68rem;
+}
+.view-feed .like-btn {
+    margin-left: auto;
+    padding: 4px 8px 4px 6px;
+    min-height: 26px;
+    font-size: 0.72rem;
+    gap: 4px;
+    border-radius: 6px;
+}
+.view-feed .like-btn .like-icon {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    font-size: 0.88rem;
+}
+.view-feed .like-btn .like-count {
+    min-width: 1.1em;
+}
+.view-feed .masterpiece-badge {
+    font-size: 0.62rem;
+    padding: 1px 6px;
+}
+.view-feed .popular-tags-heading {
+    font-size: 1.02rem;
+    margin: 0 0 14px 0;
+}
+.view-feed .popular-tag-block {
+    margin-bottom: 20px;
+}
+.view-feed .popular-tag-name {
+    font-size: 0.95rem;
+    margin: 0 0 10px 0;
+    padding: 2px 6px 2px 0;
+}
+.view-feed .popular-tag-count {
+    font-size: 0.72rem;
+}
+.view-feed .popular-tag-posts {
+    gap: 8px 10px;
+}
+.view-feed .popular-tag-posts .card--compact {
+    padding: 10px 12px;
+    min-height: 0;
+    border-radius: 8px;
+    margin-bottom: 0;
+}
+.view-feed .popular-tag-posts .card--compact h3 {
+    font-size: 0.88rem;
+    margin-bottom: 3px;
+    line-height: 1.35;
+}
+.view-feed .popular-tag-posts .card--compact .preview {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    min-height: 0;
+}
+.view-feed .popular-tag-posts .card--compact .card-author {
+    margin-bottom: 6px;
+    gap: 5px;
+}
+.view-feed .popular-tag-posts .card--compact .card-author-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 0.78rem;
+}
+.view-feed .popular-tag-posts .card--compact .card-author-name,
+.view-feed .popular-tag-posts .card--compact .date {
+    font-size: 0.68rem;
+}
+.view-feed .popular-tag-posts .card--compact .meta {
+    margin-top: 6px;
+}
+.view-feed .popular-tag-posts .card--compact .like-btn {
+    min-height: 24px;
+    padding: 2px 6px;
+    font-size: 0.68rem;
+}
+.view-feed .timeline-heading {
+    font-size: 1.12rem;
+    margin: 0 0 16px 0;
+    padding-bottom: 10px;
+}
+.view-feed .timeline-heading::after {
+    width: 24px;
 }
 
 .detail-like-row {
@@ -4059,19 +4215,86 @@ textarea,
         text-size-adjust: 100%;
     }
 
-    .site-header { padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px; }
-    .header-inner { gap: 8px; }
-    .header-title-group { padding-left: 8px; }
-    .site-title { font-size: 1.2rem; }
-    .site-desc { font-size: 0.68rem; }
-    .header-actions { gap: 1px; }
-    .profile-display-name { max-width: 80px; }
+    .site-header {
+        padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+    .header-inner {
+        gap: 6px 8px;
+        min-width: 0;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .header-title-group {
+        padding-left: 4px;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+    }
+    .site-title {
+        font-size: 1.2rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+    .site-desc {
+        font-size: 0.65rem;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .header-actions {
+        gap: 1px 4px;
+        flex: 0 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        max-width: 100%;
+    }
+    .header-actions .icon-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.95rem;
+    }
+    .profile-display-name { max-width: 72px; }
     .feed { padding: 0 16px 80px; margin: 20px auto; }
-    .search-bar { gap: 8px; margin-top: 10px; }
-    .search-bar input[type="search"] { min-width: 0; }
+    .search-bar {
+        width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+        box-sizing: border-box;
+    }
+    .search-bar input[type="search"] {
+        flex: 1 1 100%;
+        min-width: 0;
+        width: 100%;
+    }
+    .search-bar #filter-tag,
+    .search-bar #filter-sort {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+        max-width: 100%;
+    }
+    .search-hint {
+        flex: 1 1 100%;
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+    }
+    .popular-tags-section {
+        min-width: 0;
+        overflow-x: hidden;
+    }
     .modal-content { padding: 0 16px; margin-top: calc(28px + env(safe-area-inset-top, 0px)); }
     .close-btn { top: calc(14px + env(safe-area-inset-top, 0px)); }
-    .card { padding: 16px 18px; }
+    .view-feed .card { padding: 11px 13px; }
     .editor-page-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 16px; }
     .editor-header-row--meta .editor-tags-input { min-width: 0; }
     .editor-main { padding: 0 16px 16px; }

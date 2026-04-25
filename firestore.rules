@@ -76,6 +76,18 @@ service cloud.firestore {
         && request.resource.data.authorDisplayName.size() <= 20
         && request.resource.data.createdAt is string;
     }
+    // 自分のスレッド返信の表示名のみ更新（本文・日時は変更不可）
+    function threadReplyAuthorNameOnlyUpdate() {
+      return isSignedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.body == resource.data.body
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.authorDisplayName is string
+        && request.resource.data.authorDisplayName.size() > 0
+        && request.resource.data.authorDisplayName.size() <= 20
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authorDisplayName']);
+    }
 
     // 投稿（誰でも読める / ログイン済みなら作成・更新・削除）
     match /posts/{postId} {
@@ -109,7 +121,8 @@ service cloud.firestore {
       match /replies/{replyId} {
         allow read: if true;
         allow create: if isSignedIn() && safeThreadReplyPayload();
-        allow update, delete: if false;
+        allow update: if isSignedIn() && threadReplyAuthorNameOnlyUpdate();
+        allow delete: if false;
       }
     }
 

@@ -28,6 +28,8 @@
     const THREAD_MAX_REPLIES = 1000;
     const IMPORT_MAX_FILE_SIZE_BYTES = 1024 * 1024;
     const IMPORT_MAX_ITEMS = 500;
+    /** ホーム「人気のタグ」に並べるタグ数（多いほど縦に長くなる） */
+    const HOME_POPULAR_TAGS_DISPLAY_COUNT = 10;
 
     var db = null;
     var auth = null;
@@ -568,6 +570,61 @@
         return db.collection(FIRESTORE_USERS_COLLECTION).doc(uid).set(payload, { merge: true });
     }
 
+    /** プロフィール変更に合わせ、手元の投稿返信・スレッド欄の表示用フィールドを更新 */
+    function applyUserProfileToDenormalizedLocal(uid, displayName, icon, iconBg) {
+        var name = (displayName || '').trim() || (auth && auth.currentUser ? getDisplayName(auth.currentUser) : '');
+        thoughts.forEach(function (t) {
+            if (!t) return;
+            if (t.authorId === uid) {
+                t.authorDisplayName = name;
+                t.authorIcon = icon;
+                t.authorIconBg = iconBg;
+            }
+            if (Array.isArray(t.replies)) {
+                t.replies.forEach(function (r) {
+                    if (r && r.authorId === uid) r.authorDisplayName = name;
+                });
+            }
+        });
+        threads.forEach(function (th) {
+            if (!th) return;
+            if (th.authorId === uid) {
+                th.authorDisplayName = name;
+                th.authorIcon = icon;
+                th.authorIconBg = iconBg;
+            }
+            if (Array.isArray(th.replies)) {
+                th.replies.forEach(function (r) {
+                    if (r && r.authorId === uid) r.authorDisplayName = name;
+                });
+            }
+        });
+    }
+
+    /** 自分が書いた全返信（posts/threads 両方）の表示名を Firestore に揃える */
+    function updateMyReplyAuthorDisplayInFirestore(uid, newName) {
+        if (!db || !uid) return Promise.resolve();
+        return db.collectionGroup('replies').where('authorId', '==', uid).get()
+            .then(function (snap) {
+                if (!snap || !snap.docs || snap.docs.length === 0) return;
+                var docs = snap.docs;
+                var promises = [];
+                for (var i = 0; i < docs.length; i += 400) {
+                    (function (slice) {
+                        var b = db.batch();
+                        slice.forEach(function (docSnap) {
+                            b.update(docSnap.ref, { authorDisplayName: newName });
+                        });
+                        promises.push(b.commit());
+                    }(docs.slice(i, i + 400)));
+                }
+                return Promise.all(promises);
+            })
+            .catch(function (err) {
+                console.warn('Replies display name batch update failed', err);
+            });
+    }
+
     var editorState = { size: 'normal', font: 'sans', color: null };
 
     var SIZE_MAP = { small: '0.875rem', normal: '1rem', large: '1.25rem', xlarge: '1.5rem' };
@@ -1045,7 +1102,7 @@
     /** 人気タグセクションを描画（note風：人気タグ＋各タグの人気投稿最大3件） */
     function renderPopularTagsSection() {
         if (!popularTagsSection) return;
-        var popular = getPopularTags(5);
+        var popular = getPopularTags(HOME_POPULAR_TAGS_DISPLAY_COUNT);
         if (popular.length === 0) {
             popularTagsSection.hidden = true;
             return;
@@ -2860,14 +2917,12 @@
         p.then(function () {
             return saveUserProfile(uid, { icon: icon, iconBg: iconBg, displayName: displayName || getDisplayName(auth.currentUser), bio: bio });
         }).then(function () {
-            thoughts.forEach(function (t) {
-                if (t.authorId === uid) {
-                    t.authorDisplayName = displayName || getDisplayName(auth.currentUser);
-                    t.authorIcon = icon;
-                    t.authorIconBg = iconBg;
-                }
-            });
+            var resolvedName = displayName || getDisplayName(auth.currentUser) || '';
+            applyUserProfileToDenormalizedLocal(uid, resolvedName, icon, iconBg);
+            return updateMyReplyAuthorDisplayInFirestore(uid, resolvedName);
+        }).then(function () {
             save();
+            saveThreads();
             closeProfileSettingsModal();
             updateAuthUI();
             loadUserProfile(uid).then(function (profile) {
@@ -2875,9 +2930,12 @@
                 updateHeaderAvatar(profile);
             });
             renderFeed();
+            renderThreadHubSection();
             if (currentDetailId) {
-                var item = thoughts.find(function (t) { return t.id === currentDetailId; });
-                if (item && item.authorId === uid) showDetail(currentDetailId);
+                showDetail(currentDetailId);
+            }
+            if (currentThreadId) {
+                openThreadView(currentThreadId);
             }
             showToast('プロフィールを更新しました');
         }).catch(function (err) {
